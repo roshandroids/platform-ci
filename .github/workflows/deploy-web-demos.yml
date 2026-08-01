@@ -109,9 +109,11 @@ jobs:
             echo "::error::Demos manifest not found: $MANIFEST"
             exit 1
           fi
-          DEMO_IDS=$(jq -c '[.demos[].id]' "$MANIFEST")
-          DEMO_ROWS=$(jq -c '[.demos[] | {id: .id, examplePath: .examplePath, featured: (.featured // false)}]' "$MANIFEST")
-          FEATURED=$(jq -r '([.demos[] | select(.featured == true)] | first | .id) // (.demos[0].id)' "$MANIFEST")
+          # Skip demos with available: false (catalog-only / local-only entries).
+          DEMO_IDS=$(jq -c '[.demos[] | select(.available != false) | .id]' "$MANIFEST")
+          DEMO_ROWS=$(jq -c '[.demos[] | select(.available != false) | {id: .id, examplePath: .examplePath, featured: (.featured // false)}]' "$MANIFEST")
+          FEATURED=$(jq -r '([.demos[] | select(.available != false) | select(.featured == true)] | first | .id) // ([.demos[] | select(.available != false)] | first | .id)' "$MANIFEST")
+
           echo "demo_ids=$DEMO_IDS" >> "$GITHUB_OUTPUT"
           echo "demo_rows=$DEMO_ROWS" >> "$GITHUB_OUTPUT"
           echo "featured_id=$FEATURED" >> "$GITHUB_OUTPUT"

@@ -1,10 +1,17 @@
 # Changelog
 
+## 1.1.5
+
+### Fixed
+
+- `deploy-web-demos` skips manifest entries with `available: false`
+
 ## 1.1.4
 
 ### Fixed
 
 - Melos `test` / `golden` steps use `melos exec --dir-exists=test` so tooling packages without `test/` (e.g. agentic `repo_tools`) do not fail quality
+
 
 ## 1.1.3
 

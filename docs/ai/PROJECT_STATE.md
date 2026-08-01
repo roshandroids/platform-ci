@@ -45,10 +45,13 @@ Central reusable GitHub Actions platform for Flutter/Dart consumers across RSPro
 
 | Repo | Status |
 |------|--------|
-| celpip-workspace | Not wired yet |
-| Document_Platform | Example ready; migrate demos/quality next |
-| AI_Tray | Example ready; desktop via release_targets |
-| agentic_flutter_template | Example ready; should become template default |
+| celpip-workspace | Draft PR migrate (`chore/migrate-platform-ci`) — web + Firebase |
+| Document_Platform | Draft PR migrate — quality + web release + demos |
+| AI_Tray | Draft PR migrate — quality + macOS/Windows release |
+| agentic_flutter_template | Draft PR migrate — quality + web |
+
+All use opt-in `ci.yaml`. Rulesets require `quality / Quality` (+ build web where configured).
+
 
 ---
 

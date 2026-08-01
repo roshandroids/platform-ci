@@ -8,10 +8,10 @@
 | P002 | AI-friendly docs | **Done** |
 | P003 | Publish + tag v1.0.0 | **Done** |
 | P009 | v1.1 generic coverage (desktop, demos, hooks, examples) | **Done** (this change) |
-| P004 | Migrate celpip-workspace | Open |
-| P010 | Migrate agentic_flutter_template callers | Open |
-| P011 | Migrate Document_Platform demos + quality | Open |
-| P012 | Migrate AI_Tray release desktop | Open |
+| P004 | Migrate celpip-workspace | Draft PR |
+| P010 | Migrate agentic_flutter_template callers | Draft PR |
+| P011 | Migrate Document_Platform demos + quality | Draft PR |
+| P012 | Migrate AI_Tray release desktop | Draft PR |
 | P005 | Secret setup one-pager | Open |
 | P008 | flutter-template ships platform-ci by default | Open |
 

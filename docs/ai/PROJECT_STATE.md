@@ -3,8 +3,9 @@
 > AI agents: update this when shipping platform changes.
 
 **Last updated:** 2026-08-01  
-**Default branch:** `main` (create on first push; local may start as `master`)  
-**Version intent:** `v1.0.0` / floating `@v1`
+**Default branch:** `main`  
+**Version:** `v1.0.0` / floating `@v1`  
+**Remote:** https://github.com/roshandroids/platform-ci
 
 ---
 
@@ -33,6 +34,7 @@ Central reusable GitHub Actions platform for Flutter/Dart consumers (apps, packa
 | `ci.yaml` schema + templates + examples | Shipped |
 | `scripts/validate-local.sh` | Shipped |
 | AI docs (`AGENTS.md`, `docs/ai/*`) | Shipped |
+| GitHub publish + tags `v1` / `v1.0.0` | Shipped |
 
 ---
 
@@ -52,7 +54,9 @@ Central reusable GitHub Actions platform for Flutter/Dart consumers (apps, packa
 
 None wired yet. Intended first consumer: `celpip-workspace` (migrate later).
 
-Templates use placeholder `OWNER/platform-ci` → replace with `roshandroids/platform-ci`.
+Use: `roshandroids/platform-ci/.github/workflows/*.yml@v1`
+
+Note: legacy `master` branch may still exist from an earlier Phase 0 scaffold (`ci/project.yaml`). Prefer `main` + `@v1`.
 
 ---
 
@@ -61,3 +65,4 @@ Templates use placeholder `OWNER/platform-ci` → replace with `roshandroids/pla
 - Reusable workflows resolve this repo via `github.workflow_ref` into `_platform_ci/`
 - Artifact contract: `build-<target>-<sha>`
 - Dependabot: github-actions weekly
+- Push workflows require SSH (`roshandroids.github.com`) or a token with `workflow` scope

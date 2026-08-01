@@ -121,15 +121,17 @@ jobs:
           MELOS_FILTER: ${{ steps.cfg.outputs.melos_filter }}
         run: |
           set -euo pipefail
+          # flutter test exits 79 when no tests match --tags=golden; treat as skip.
+          GOLDEN_CMD='set +e; flutter test --tags=golden; code=$?; set -e; if [ "$code" -eq 79 ]; then echo "No golden-tagged tests — skip"; exit 0; fi; exit "$code"'
           if [[ "$KIND" == "melos" ]]; then
             if [[ -n "$MELOS_FILTER" ]]; then
-              melos exec --dir-exists=test --scope="$MELOS_FILTER" -- flutter test --tags=golden
+              melos exec --dir-exists=test --scope="$MELOS_FILTER" -- bash -lc "$GOLDEN_CMD"
             else
-              melos exec --dir-exists=test -- flutter test --tags=golden
+              melos exec --dir-exists=test -- bash -lc "$GOLDEN_CMD"
             fi
           else
             echo "$PATHS_JSON" | jq -r '.[]' | while read -r p; do
-              (cd "$p" && flutter test --tags=golden)
+              (cd "$p" && bash -lc "$GOLDEN_CMD")
             done
           fi
 

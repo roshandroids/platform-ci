@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.6
+
+### Fixed
+
+- Melos golden step treats flutter exit 79 (no tests matched `--tags=golden`) as skip
+
 ## 1.1.5
 
 ### Fixed

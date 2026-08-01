@@ -18,20 +18,21 @@ Product policy lives in the **consumer** `ci.yaml`. This repo owns workflows + c
 
 1. [README.md](README.md) — human quick start
 2. [docs/PLATFORM.md](docs/PLATFORM.md) — architecture rules
-3. [docs/ai/AI_AGENT_CONTRACT.md](docs/ai/AI_AGENT_CONTRACT.md) — agent rules (this file summarizes; contract wins on conflict)
-4. [docs/ai/PROJECT_STATE.md](docs/ai/PROJECT_STATE.md) — what is shipped / not shipped
-5. [schema/ci.schema.json](schema/ci.schema.json) — config contract
-6. [CHANGELOG.md](CHANGELOG.md) — version notes
+3. [docs/RELEASE.md](docs/RELEASE.md) — release / tag model
+4. [docs/ai/AI_AGENT_CONTRACT.md](docs/ai/AI_AGENT_CONTRACT.md) — agent rules (this file summarizes; contract wins on conflict)
+5. [docs/ai/PROJECT_STATE.md](docs/ai/PROJECT_STATE.md) — what is shipped / not shipped
+6. [schema/ci.schema.json](schema/ci.schema.json) — config contract
+7. [CHANGELOG.md](CHANGELOG.md) — version notes
 
 ## Non-negotiables
 
-1. **Build once** — deploy/release must download artifacts; never re-run `flutter build` in deploy jobs.
-2. **Config over forks** — extend `ci.yaml` / schema; do not tell consumers to copy-paste huge workflows.
-3. **Minute thrift / opt-in** — default `pr_builds`/`main_builds`/`release_targets` empty; deploy/publish off; no macOS/Windows on PR. See [docs/OPT_IN.md](docs/OPT_IN.md). Capability in platform ≠ enabled for every consumer.
-4. **Version API** — breaking workflow inputs or schema → new major (`v2`). Update CHANGELOG.
-5. **Keep callables thin** — orchestration in workflows; setup in composite actions.
-6. **Escape hatch** — product-specific gates via `quality.scripts` / `build.<target>.script` / `hooks.before_build`, not new workflows per app.
-7. **No enterprise sprawl** — no self-hosted runners, no required coverage % in platform core.
+1. **Release model** — cheap feature PRs; Release PR proves shipability; tag publishes. See [docs/RELEASE.md](docs/RELEASE.md). Tag workflow may **rebuild**; cross-run artifact reuse is optional, not required.
+2. **Same-run handoff** — within a publish run, build once then deploy/release download artifacts. Never rebuild inside `deploy-*` after that run’s build.
+3. **Config over forks** — extend `ci.yaml` / schema; no huge copy-paste workflows.
+4. **Minute thrift / opt-in** — empty build lists by default; no macOS/Windows on feature PRs. [docs/OPT_IN.md](docs/OPT_IN.md).
+5. **Version API** — breaking inputs/schema → `v2`.
+6. **Escape hatch** — `quality.scripts` / `build.*.script` / `hooks.before_build`.
+7. **No enterprise sprawl** — no self-hosted runners, no mandatory coverage %.
 
 ## Where to change what
 

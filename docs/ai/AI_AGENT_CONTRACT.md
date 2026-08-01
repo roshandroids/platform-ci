@@ -13,7 +13,7 @@ Help maintain a **small, reusable CI/CD platform** for Flutter and Dart repos th
 - Fits the free GitHub Actions tier (~3000 min/mo mindset)
 - Favors solo / small-team workflows
 - Prefers configuration (`ci.yaml`) over duplicated YAML
-- Builds artifacts once and deploys from artifacts
+- Follows [RELEASE.md](../RELEASE.md): cheap PRs, Release PR shipability, tag rebuild+publish
 
 Agents assist. They do not invent enterprise CI features without an explicit request.
 
@@ -25,6 +25,8 @@ Agents assist. They do not invent enterprise CI features without an explicit req
 |-------|-----|
 | Agent entry | [../../AGENTS.md](../../AGENTS.md) |
 | Platform behavior | [../PLATFORM.md](../PLATFORM.md) |
+| Release model | [../RELEASE.md](../RELEASE.md) |
+| Opt-in | [../OPT_IN.md](../OPT_IN.md) |
 | Config shape | [../../schema/ci.schema.json](../../schema/ci.schema.json) |
 | Shipped vs planned | [PROJECT_STATE.md](PROJECT_STATE.md) |
 | Backlog | [TASKS.md](TASKS.md) |
@@ -36,13 +38,18 @@ If code and docs disagree: **fix the mismatch**, then update docs in the same ch
 
 ## 3. Hard rules
 
-### Rule A — Artifact flow
+### Rule A — Artifact flow (same run)
 
 ```
-quality → build (upload build-<target>-<sha>) → deploy|release (download only)
+tag/dispatch run:  build (upload) → deploy|release (download only)
 ```
 
-Deploy workflows must not compile Flutter/Dart unless the Product Owner explicitly requests an exception.
+Within one workflow run, deploy must not recompile.  
+**Across runs:** tag may rebuild even if a Release PR already built the same version — that is the default. Cross-run artifact promotion is optional later, not required. See [RELEASE.md](../RELEASE.md).
+
+### Rule H — Release model
+
+Cheap feature PRs. Release PR owns version + changelog and may run `release_targets` builds. Tag only after merge. Tag publishes (build → release/deploy). No permanent `dev` branch.
 
 ### Rule B — Schema first
 

@@ -1,60 +1,54 @@
 # Opt-in model — platform-ci never forces a full matrix
 
-**Rule:** capability exists in the platform ≠ it runs for every repo.
+**Rule:** capability exists ≠ it runs for every repo.
 
-Consumers enable only what they need via `ci.yaml` + thin caller workflows.
+Canonical release flow: [RELEASE.md](RELEASE.md).
 
 ---
 
-## What runs by default (minimal template)
+## Defaults (minimal template)
 
 | Lane | Default |
 |------|---------|
-| format / analyze / test | **on** (cheap, ubuntu) |
+| format / analyze / test | **on** |
 | coverage / golden / integration / scripts | **off** |
 | Node / before_build | **off** |
-| `pr_builds` / `main_builds` / `release_targets` | **[] empty** |
-| Firebase / Pages / demos / pub | **enabled: false** |
+| `pr_builds` / `main_builds` / `release_targets` | **[]** |
+| Firebase / Pages / demos / pub | **off** |
 
 Default caller: [`templates/consumer-ci.yml`](../templates/consumer-ci.yml) → **quality only**.
 
 ---
 
-## How to enable pieces
+## Enable pieces
 
 | Want | Do |
 |------|-----|
-| Skip format or tests | `quality.format: false` / `quality.test: false` |
-| Goldens | `quality.golden: true` |
-| Integration | `quality.integration: true` |
-| Extra repo scripts | `quality.scripts: ["./scripts/..."]` |
-| Web build on PR | add `web` to `pr_builds` **and** use `consumer-ci-with-build.yml` |
-| Web build on main | add `web` to `main_builds` + build caller |
-| Desktop on tag only | `release_targets: [macos, windows]` + `consumer-release.yml` |
-| Firebase | `deploy.firebase.enabled: true` + deploy template + secret |
-| Pages | `deploy.pages.enabled: true` + deploy-pages caller |
-| Multi-demo Pages | `deploy.demos.enabled: true` + demos caller |
-| pub.dev | `publish.pub.enabled: true` + publish caller |
+| Toggle quality gates | `quality.*` booleans / `scripts` |
+| Prove ship on Release PR | non-empty `release_targets` + build on `release/**` PRs |
+| Publish on tag | tag workflow: `build` then `release`/deploy (**rebuild on tag**) |
+| Continuous web preview (rare) | optional `pr_builds: [web]` — not default |
+| Firebase / Pages / demos / pub | `deploy.*` / `publish.*` + matching thin workflow |
 
 ---
 
 ## Do not
 
-- Copy every template workflow into every repo
-- Put macos/windows/ios in `pr_builds` without a reason (minutes)
-- Call `build.yml` when all build lists are empty (wastes a resolve job)
-- Turn on demos/firebase/pages “just in case”
+- Expensive builds on every feature PR
+- Permanent `dev` branch for solo
+- Require cross-run artifact reuse
+- Call `build.yml` when all target lists empty
+- Enable demos/firebase/pages “just in case”
 
 ---
 
-## Per-project examples
+## Per-project (target end-state)
 
-| Project | Typical enable set |
-|---------|-------------------|
-| Pure Dart package | quality only (± pub dry-run) |
-| celpip web app | quality + `main_builds: [web]` + firebase |
-| AI_Tray | quality + `release_targets: [macos, windows]` + node/hooks |
-| Document_Platform | quality (+ scripts/golden) + demos on main + firebase on tag |
-| agentic template | quality (+ golden/scripts) + web main + pages |
+| Project | Feature PR | Release PR / tag |
+|---------|------------|------------------|
+| AI_Tray | quality | macos + windows |
+| Document_Platform | quality | web (+ demos on main optional) |
+| celpip | quality | web + firebase on tag/main deploy policy |
+| agentic template | quality | web |
 
-See [`COMPATIBILITY.md`](COMPATIBILITY.md) and [`examples/`](../examples/).
+See [COMPATIBILITY.md](COMPATIBILITY.md) · [examples/](../examples/).

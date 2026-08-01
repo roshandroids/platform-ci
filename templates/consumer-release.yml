@@ -1,4 +1,6 @@
-# Optional: tag release + attach artifacts. Copy to .github/workflows/release.yml
+# Tag publish — build then release (same run).
+# Version + CHANGELOG land earlier via a Release PR (see docs/RELEASE.md).
+# Copy to .github/workflows/release.yml — replace OWNER.
 name: Release
 
 on:
@@ -9,9 +11,10 @@ on:
 permissions:
   contents: write
 
+# Intentional: rebuild on tag (simple). Do not fetch Release PR artifacts.
 jobs:
   build:
-    uses: OWNER/platform-ci/.github/workflows/build.yml@v1
+    uses: roshandroids/platform-ci/.github/workflows/build.yml@v1
     with:
       config-path: ci.yaml
       trigger: release
@@ -19,7 +22,7 @@ jobs:
 
   release:
     needs: build
-    uses: OWNER/platform-ci/.github/workflows/release.yml@v1
+    uses: roshandroids/platform-ci/.github/workflows/release.yml@v1
     with:
       config-path: ci.yaml
       tag: ${{ github.ref_name }}

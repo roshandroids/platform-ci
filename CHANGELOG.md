@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2
+
+### Changed
+
+- Canonical release model: Release PR proves shipability; tag rebuilds then publishes
+- Cross-run artifact promotion = optional later, not core ([docs/RELEASE.md](docs/RELEASE.md))
+
 ## 1.1.1
 
 ### Changed

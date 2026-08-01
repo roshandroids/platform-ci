@@ -11,7 +11,7 @@ Covers: apps · Melos monorepos · packages · CLI · web · Android · iOS · m
 1. Copy [`templates/ci.yaml`](templates/ci.yaml) → `ci.yaml` (defaults = quality only).
 2. Copy [`templates/consumer-ci.yml`](templates/consumer-ci.yml) → `.github/workflows/ci.yml`.
 3. Pin `roshandroids/platform-ci@v1`.
-4. **Opt in** builds/deploy/release only when needed — see [`docs/OPT_IN.md`](docs/OPT_IN.md).
+4. **Opt in** builds/deploy/release only when needed — see [`docs/OPT_IN.md`](docs/OPT_IN.md) and [`docs/RELEASE.md`](docs/RELEASE.md).
 
 Nothing outside `quality.format/analyze/test` runs unless you enable it and add the matching thin workflow.
 

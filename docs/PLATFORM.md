@@ -2,62 +2,49 @@
 
 ## Philosophy
 
-1. **Opt-in** — platform offers many lanes; each repo enables only what it needs ([OPT_IN.md](OPT_IN.md)).
-2. PR = quality flags you turned on. Builds only if build lists non-empty **and** caller includes `build.yml`.
-3. Build each target **once per SHA**; deploy downloads artifacts.
-4. macOS/Windows rare — release/tag, not every PR.
-5. Policy in `ci.yaml`, not forked workflow YAML.
+1. **Opt-in** — lanes exist; each repo enables only what it needs ([OPT_IN.md](OPT_IN.md)).
+2. **Release model** — cheap mergeability / Release PR shipability / tag publish ([RELEASE.md](RELEASE.md)).
+3. Feature PRs = `quality` only by default (empty build lists).
+4. Expensive builds = Release PRs + tags (infrequent).
+5. **Same-run** artifact handoff only: tag workflow builds once, then deploy/release downloads. Cross-run promotion is optional later — **not** required.
+6. Policy in `ci.yaml`, not forked workflow YAML.
 
 ## Workflows
 
 | Workflow | When to call |
 |----------|----------------|
-| `quality` | every PR + main |
-| `build` | when targets non-empty for trigger |
-| `deploy-firebase` / `deploy-pages` | after build, same run |
-| `release` | on `v*` tags after build |
+| `quality` | every PR → main |
+| `build` | `release/**` PRs and/or tags (see RELEASE.md) |
+| `deploy-firebase` / `deploy-pages` / `deploy-web-demos` | same run as `build` |
+| `release` | on `v*` after `build` in same run |
 | `publish-pub` | tag or manual |
 | `maintenance` | weekly / manual |
 
-## Artifact contract
+## Artifact contract (same run)
 
 ```
 build-<target>-<sha>
 ```
 
-Examples: `build-web-abc123`, `build-android-abc123`, `build-cli-abc123`.
-
-Deploy/release **must** run in the **same workflow run** as `build` (Actions artifact scope).
+Deploy/release jobs in the **same workflow run** download these.  
+Do not design core flows around fetching artifacts from a prior Release PR run.
 
 ## Platform resolve trick
 
-Reusable workflows checkout this repo via `github.workflow_ref` into `_platform_ci/`, then `uses: ./_platform_ci/.github/actions/...`. Caller’s `uses: .../quality.yml@v1` pins matching actions automatically.
+Reusable workflows checkout this repo via `github.workflow_ref` into `_platform_ci/`, then `uses: ./_platform_ci/.github/actions/...`.
 
-## v1 build support
+## Build support
 
 | Target | Runner | Status |
 |--------|--------|--------|
 | web | ubuntu | supported |
 | android | ubuntu | supported |
-| cli | ubuntu | supported (`bin/*.dart` or script) |
-| ios | macos | `--no-codesign` marker / prefer `script` for IPA |
-| macos | macos | supported + optional zip |
-| windows | windows | supported + optional zip |
-| linux | ubuntu | supported + optional zip |
+| cli | ubuntu | supported |
+| ios | macos | prefer `script` for real IPA |
+| macos / windows / linux | matching OS | supported + optional zip |
 
-Custom: `build.<target>.script` must populate `dist/<target>/`.  
-Node: `node.enabled` + `hooks.before_build`.  
-Demos: `deploy-web-demos.yml`.
-
-See [COMPATIBILITY.md](COMPATIBILITY.md).
+See [COMPATIBILITY.md](COMPATIBILITY.md) · [OPT_IN.md](OPT_IN.md) · [RELEASE.md](RELEASE.md).
 
 ## Consumer wiring
 
-See [`templates/`](../templates/) and root [README](../README.md).
-
-## Extending
-
-1. Add target in `build.yml`
-2. Extend `schema/ci.schema.json` + `read-config`
-3. Bump major if inputs break
-4. Update examples + CHANGELOG
+[`templates/`](../templates/) · [README](../README.md)

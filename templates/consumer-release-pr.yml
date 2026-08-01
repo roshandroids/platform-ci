@@ -1,0 +1,36 @@
+# Optional: prove shipability on Release PRs (quality + release_targets builds).
+# Use with branches release/** — version/CHANGELOG already on the branch.
+# Feature PRs should keep using consumer-ci.yml (quality only).
+name: Release PR
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/pubspec.yaml"
+      - "**/CHANGELOG.md"
+      - "CHANGELOG.md"
+      - "ci.yaml"
+    # Prefer also limiting by branch name in repo rules; path filter is a weak hint.
+    # Stronger: only open this workflow file when using release/* branches via:
+    #   if: startsWith(github.head_ref, 'release/')
+
+concurrency:
+  group: release-pr-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    if: startsWith(github.head_ref, 'release/')
+    uses: roshandroids/platform-ci/.github/workflows/quality.yml@v1
+    with:
+      config-path: ci.yaml
+
+  build:
+    if: startsWith(github.head_ref, 'release/')
+    needs: quality
+    uses: roshandroids/platform-ci/.github/workflows/build.yml@v1
+    with:
+      config-path: ci.yaml
+      trigger: release
+      sha: ${{ github.sha }}

@@ -1,0 +1,5 @@
+.DS_Store
+_platform_ci/
+dist/
+release-assets/
+*.log

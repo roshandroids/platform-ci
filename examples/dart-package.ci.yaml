@@ -1,0 +1,19 @@
+schema: 1
+flutter: "3.38.9"
+kind: package
+paths:
+  - .
+quality:
+  format: true
+  analyze: true
+  test: true
+pr_builds: []
+main_builds: []
+release_targets: []
+publish:
+  pub:
+    enabled: true
+    path: .
+    dry_run_on_pr: true
+hooks:
+  local: true

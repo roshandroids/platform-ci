@@ -1,0 +1,97 @@
+name: Publish pub.dev
+
+# Callable: dart pub publish (or dry-run).
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        type: string
+        required: false
+        default: ci.yaml
+      dry-run:
+        description: Force dry-run regardless of config
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      PUB_CREDENTIALS:
+        required: false
+
+jobs:
+  publish:
+    name: pub.dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout consumer
+        uses: actions/checkout@v4
+
+      - name: Resolve platform-ci ref
+        id: platform
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          without_ref="${WORKFLOW_REF%%@*}"
+          ref="${WORKFLOW_REF#*@}"
+          owner="$(echo "$without_ref" | cut -d/ -f1)"
+          name="$(echo "$without_ref" | cut -d/ -f2)"
+          echo "repository=${owner}/${name}" >> "$GITHUB_OUTPUT"
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout platform-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.platform.outputs.repository }}
+          ref: ${{ steps.platform.outputs.ref }}
+          path: _platform_ci
+          sparse-checkout: |
+            .github/actions
+          sparse-checkout-cone-mode: true
+
+      - name: Read config
+        id: cfg
+        uses: ./_platform_ci/.github/actions/read-config
+        with:
+          config-path: ${{ inputs.config-path }}
+
+      - name: Guard enabled
+        if: steps.cfg.outputs.pub_enabled != 'true'
+        shell: bash
+        run: |
+          echo "::error::publish.pub.enabled is false in ci.yaml"
+          exit 1
+
+      - name: Flutter setup
+        uses: ./_platform_ci/.github/actions/flutter-setup
+        with:
+          flutter-version: ${{ steps.cfg.outputs.flutter }}
+          working-directory: ${{ steps.cfg.outputs.pub_path }}
+
+      - name: Write pub credentials
+        if: ${{ !inputs.dry-run }}
+        shell: bash
+        env:
+          PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${PUB_CREDENTIALS:-}" ]]; then
+            echo "::error::PUB_CREDENTIALS secret required for real publish"
+            exit 1
+          fi
+          mkdir -p "$HOME/.config/dart"
+          echo "$PUB_CREDENTIALS" > "$HOME/.config/dart/pub-credentials.json"
+
+      - name: Publish
+        shell: bash
+        working-directory: ${{ steps.cfg.outputs.pub_path }}
+        env:
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          set -euo pipefail
+          if [[ "$DRY_RUN" == "true" ]]; then
+            dart pub publish --dry-run
+          else
+            dart pub publish --force
+          fi

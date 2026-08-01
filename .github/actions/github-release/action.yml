@@ -1,0 +1,53 @@
+name: GitHub Release
+description: Create a GitHub Release and upload downloaded artifact files
+
+inputs:
+  tag:
+    description: Release tag (e.g. v1.2.3)
+    required: true
+  name:
+    description: Release title
+    required: false
+    default: ""
+  body:
+    description: Release notes body
+    required: false
+    default: ""
+  artifact-dir:
+    description: Directory containing files to upload
+    required: false
+    default: dist
+  generate-notes:
+    description: Let GitHub auto-generate notes when body empty
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Create release and upload assets
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ inputs.tag }}
+        NAME: ${{ inputs.name }}
+        BODY: ${{ inputs.body }}
+        ARTIFACT_DIR: ${{ inputs.artifact-dir }}
+        GENERATE_NOTES: ${{ inputs.generate-notes }}
+      run: |
+        set -euo pipefail
+        title="${NAME:-$TAG}"
+        args=(release create "$TAG" --title "$title")
+        if [[ -n "$BODY" ]]; then
+          args+=(--notes "$BODY")
+        elif [[ "$GENERATE_NOTES" == "true" ]]; then
+          args+=(--generate-notes)
+        else
+          args+=(--notes "")
+        fi
+        if [[ -d "$ARTIFACT_DIR" ]]; then
+          while IFS= read -r -d '' file; do
+            args+=("$file")
+          done < <(find "$ARTIFACT_DIR" -type f -print0)
+        fi
+        gh "${args[@]}"

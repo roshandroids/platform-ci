@@ -1,0 +1,61 @@
+name: Platform self-test
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: platform-self-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parse-examples:
+    name: Parse example configs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        config:
+          - examples/app-web.ci.yaml
+          - examples/dart-package.ci.yaml
+          - examples/melos.ci.yaml
+          - templates/ci.yaml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read config
+        id: cfg
+        uses: ./.github/actions/read-config
+        with:
+          config-path: ${{ matrix.config }}
+
+      - name: Assert outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.cfg.outputs.schema }}" = "1"
+          test -n "${{ steps.cfg.outputs.flutter }}"
+          test -n "${{ steps.cfg.outputs.kind }}"
+          test -n "${{ steps.cfg.outputs.primary_path }}"
+          echo "OK ${{ matrix.config }} kind=${{ steps.cfg.outputs.kind }}"
+
+  workflow-files:
+    name: Workflow files present
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check required workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in quality build release deploy-firebase deploy-pages publish-pub maintenance; do
+            test -f ".github/workflows/${f}.yml"
+          done
+          for a in read-config flutter-setup melos-bootstrap github-release checkout-platform; do
+            test -f ".github/actions/${a}/action.yml"
+          done
+          test -x scripts/validate-local.sh || chmod +x scripts/validate-local.sh
+          echo "OK layout"

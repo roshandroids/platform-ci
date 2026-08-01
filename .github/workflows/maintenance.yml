@@ -1,0 +1,82 @@
+name: Maintenance
+
+# Lightweight hygiene. Prefer Dependabot for action bumps.
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        type: string
+        required: false
+        default: ci.yaml
+  workflow_dispatch:
+  schedule:
+    - cron: "0 12 * * 0"
+
+jobs:
+  hygiene:
+    name: Hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect ci.yaml
+        id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+          path="ci.yaml"
+          if [[ -f "$path" ]]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "config_path=$path" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No ci.yaml — maintenance no-op (OK for platform-ci itself)."
+          fi
+
+      - name: Resolve platform-ci ref
+        if: steps.check.outputs.present == 'true'
+        id: platform
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          without_ref="${WORKFLOW_REF%%@*}"
+          ref="${WORKFLOW_REF#*@}"
+          owner="$(echo "$without_ref" | cut -d/ -f1)"
+          name="$(echo "$without_ref" | cut -d/ -f2)"
+          echo "repository=${owner}/${name}" >> "$GITHUB_OUTPUT"
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout platform-ci actions
+        if: steps.check.outputs.present == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.platform.outputs.repository }}
+          ref: ${{ steps.platform.outputs.ref }}
+          path: _platform_ci
+          sparse-checkout: |
+            .github/actions
+          sparse-checkout-cone-mode: true
+
+      - name: Read config
+        if: steps.check.outputs.present == 'true'
+        id: cfg
+        uses: ./_platform_ci/.github/actions/read-config
+        with:
+          config-path: ${{ steps.check.outputs.config_path }}
+
+      - name: Flutter setup
+        if: steps.check.outputs.present == 'true'
+        uses: ./_platform_ci/.github/actions/flutter-setup
+        with:
+          flutter-version: ${{ steps.cfg.outputs.flutter }}
+          working-directory: ${{ steps.cfg.outputs.primary_path }}
+
+      - name: Outdated report
+        if: steps.check.outputs.present == 'true'
+        shell: bash
+        working-directory: ${{ steps.cfg.outputs.primary_path }}
+        run: dart pub outdated || true

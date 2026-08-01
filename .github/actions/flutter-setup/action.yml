@@ -1,0 +1,39 @@
+name: Flutter setup
+description: Install Flutter SDK (cached) and run pub get
+
+inputs:
+  flutter-version:
+    description: Flutter SDK version or channel
+    required: true
+  working-directory:
+    description: Directory containing pubspec.yaml
+    required: false
+    default: .
+  channel:
+    description: Flutter channel when version is a channel name
+    required: false
+    default: stable
+  cache:
+    description: Enable Flutter action cache
+    required: false
+    default: "true"
+  pub-get:
+    description: Run flutter pub get after setup
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ inputs.flutter-version }}
+        channel: ${{ inputs.channel }}
+        cache: ${{ inputs.cache == 'true' }}
+
+    - name: Pub get
+      if: inputs.pub-get == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: flutter pub get

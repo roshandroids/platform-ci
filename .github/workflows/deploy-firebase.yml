@@ -1,0 +1,110 @@
+name: Deploy Firebase
+
+# Callable: deploy pre-built web artifact to Firebase Hosting (no rebuild).
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        type: string
+        required: false
+        default: ci.yaml
+      artifact-sha:
+        description: SHA used in artifact name build-web-<sha>
+        type: string
+        required: true
+      channel-id:
+        description: Firebase Hosting channel (live or pr-N)
+        type: string
+        required: false
+        default: live
+      entry-point:
+        description: Directory containing firebase.json
+        type: string
+        required: false
+        default: .
+    secrets:
+      FIREBASE_SERVICE_ACCOUNT:
+        required: true
+
+jobs:
+  deploy:
+    name: Firebase Hosting
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout consumer
+        uses: actions/checkout@v4
+
+      - name: Resolve platform-ci ref
+        id: platform
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          without_ref="${WORKFLOW_REF%%@*}"
+          ref="${WORKFLOW_REF#*@}"
+          owner="$(echo "$without_ref" | cut -d/ -f1)"
+          name="$(echo "$without_ref" | cut -d/ -f2)"
+          echo "repository=${owner}/${name}" >> "$GITHUB_OUTPUT"
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout platform-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.platform.outputs.repository }}
+          ref: ${{ steps.platform.outputs.ref }}
+          path: _platform_ci
+          sparse-checkout: |
+            .github/actions
+          sparse-checkout-cone-mode: true
+
+      - name: Read config
+        id: cfg
+        uses: ./_platform_ci/.github/actions/read-config
+        with:
+          config-path: ${{ inputs.config-path }}
+
+      - name: Guard enabled
+        if: steps.cfg.outputs.firebase_enabled != 'true'
+        shell: bash
+        run: |
+          echo "::error::deploy.firebase.enabled is false in ci.yaml"
+          exit 1
+
+      - name: Require project id
+        if: steps.cfg.outputs.firebase_project_id == ''
+        shell: bash
+        run: |
+          echo "::error::deploy.firebase.project_id missing in ci.yaml"
+          exit 1
+
+      - name: Download web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-web-${{ inputs.artifact-sha }}
+          path: _web_artifact
+
+      - name: Stage Hosting public dir
+        shell: bash
+        env:
+          ENTRY: ${{ inputs.entry-point }}
+        run: |
+          set -euo pipefail
+          public="build/web"
+          if [[ -f "${ENTRY}/firebase.json" ]]; then
+            public="$(ruby -rjson -e "puts JSON.parse(File.read('${ENTRY}/firebase.json')).dig('hosting','public') || 'build/web'")"
+          fi
+          mkdir -p "${ENTRY}/${public}"
+          find "${ENTRY}/${public}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -R _web_artifact/. "${ENTRY}/${public}/"
+          echo "Staged artifact → ${ENTRY}/${public}"
+
+      - name: Deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ github.token }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: ${{ inputs.channel-id }}
+          projectId: ${{ steps.cfg.outputs.firebase_project_id }}
+          entryPoint: ${{ inputs.entry-point }}

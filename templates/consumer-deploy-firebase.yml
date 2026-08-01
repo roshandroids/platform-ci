@@ -1,0 +1,35 @@
+# Optional: deploy web artifact to Firebase after build on main.
+# Requires secret FIREBASE_SERVICE_ACCOUNT and deploy.firebase.enabled in ci.yaml.
+name: Deploy Firebase
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-firebase-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    uses: OWNER/platform-ci/.github/workflows/quality.yml@v1
+    with:
+      config-path: ci.yaml
+
+  build:
+    needs: quality
+    uses: OWNER/platform-ci/.github/workflows/build.yml@v1
+    with:
+      config-path: ci.yaml
+      trigger: push
+      sha: ${{ github.sha }}
+
+  deploy:
+    needs: build
+    uses: OWNER/platform-ci/.github/workflows/deploy-firebase.yml@v1
+    with:
+      config-path: ci.yaml
+      artifact-sha: ${{ github.sha }}
+      channel-id: live
+    secrets:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

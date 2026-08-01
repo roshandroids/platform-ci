@@ -1,0 +1,86 @@
+name: Release
+
+# Callable: download build-* artifacts from this run → GitHub Release.
+# Must run in same workflow run as build.yml (artifact sharing).
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        type: string
+        required: false
+        default: ci.yaml
+      tag:
+        description: Release tag (vX.Y.Z)
+        type: string
+        required: true
+      artifact-sha:
+        description: SHA used in build-<target>-<sha> artifact names
+        type: string
+        required: true
+      body:
+        description: Optional release notes
+        type: string
+        required: false
+        default: ""
+    permissions:
+      contents: write
+
+jobs:
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout consumer
+        uses: actions/checkout@v4
+
+      - name: Resolve platform-ci ref
+        id: platform
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          without_ref="${WORKFLOW_REF%%@*}"
+          ref="${WORKFLOW_REF#*@}"
+          owner="$(echo "$without_ref" | cut -d/ -f1)"
+          name="$(echo "$without_ref" | cut -d/ -f2)"
+          echo "repository=${owner}/${name}" >> "$GITHUB_OUTPUT"
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout platform-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.platform.outputs.repository }}
+          ref: ${{ steps.platform.outputs.ref }}
+          path: _platform_ci
+          sparse-checkout: |
+            .github/actions
+          sparse-checkout-cone-mode: true
+
+      - name: Download build artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-*-${{ inputs.artifact-sha }}
+          path: dist
+          merge-multiple: false
+
+      - name: Collect release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          if [[ -d dist ]]; then
+            find dist -type f -exec cp {} release-assets/ \;
+          fi
+          echo "Assets:"
+          ls -la release-assets || true
+
+      - name: Publish GitHub Release
+        uses: ./_platform_ci/.github/actions/github-release
+        with:
+          tag: ${{ inputs.tag }}
+          name: ${{ inputs.tag }}
+          body: ${{ inputs.body }}
+          artifact-dir: release-assets

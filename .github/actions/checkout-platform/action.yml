@@ -1,0 +1,50 @@
+name: Checkout platform-ci
+description: >
+  Check out the platform-ci ref that invoked the reusable workflow so composite
+  actions match the called workflow version.
+
+inputs:
+  path:
+    description: Destination path for platform-ci checkout
+    required: false
+    default: _platform_ci
+
+outputs:
+  path:
+    description: Checkout path
+    value: ${{ inputs.path }}
+  repository:
+    description: Resolved platform repository
+    value: ${{ steps.resolve.outputs.repository }}
+  ref:
+    description: Resolved platform ref
+    value: ${{ steps.resolve.outputs.ref }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve platform source from workflow_ref
+      id: resolve
+      shell: bash
+      env:
+        WORKFLOW_REF: ${{ github.workflow_ref }}
+      run: |
+        set -euo pipefail
+        # Format: owner/name/.github/workflows/file.yml@refs/tags/v1
+        without_ref="${WORKFLOW_REF%%@*}"
+        ref="${WORKFLOW_REF#*@}"
+        owner="$(echo "$without_ref" | cut -d/ -f1)"
+        name="$(echo "$without_ref" | cut -d/ -f2)"
+        echo "repository=${owner}/${name}" >> "$GITHUB_OUTPUT"
+        echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+        echo "Platform: ${owner}/${name} @ ${ref}"
+
+    - name: Checkout platform-ci
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ steps.resolve.outputs.repository }}
+        ref: ${{ steps.resolve.outputs.ref }}
+        path: ${{ inputs.path }}
+        sparse-checkout: |
+          .github/actions
+        sparse-checkout-cone-mode: true

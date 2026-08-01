@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/platform-ci/schema/ci.schema.json",
+  "title": "platform-ci configuration",
+  "type": "object",
+  "required": ["schema", "flutter", "kind", "paths"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "const": 1,
+      "description": "Config schema version"
+    },
+    "flutter": {
+      "type": "string",
+      "description": "Flutter SDK version pin (e.g. 3.38.9) or channel name",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["app", "package", "melos", "cli"]
+    },
+    "paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Package roots relative to repo root"
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": { "type": "boolean", "default": true },
+        "analyze": { "type": "boolean", "default": true },
+        "test": { "type": "boolean", "default": true },
+        "coverage": { "type": "boolean", "default": false },
+        "melos_filter": { "type": "string", "default": "" }
+      }
+    },
+    "pr_builds": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["web", "android", "ios", "linux", "macos", "windows", "cli"] },
+      "default": [],
+      "description": "Build targets on pull_request. Empty = quality only."
+    },
+    "main_builds": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["web", "android", "ios", "linux", "macos", "windows", "cli"] },
+      "default": []
+    },
+    "release_targets": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["web", "android", "ios", "linux", "macos", "windows", "cli"] },
+      "default": []
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "web": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "args": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": ["--release"]
+            }
+          }
+        },
+        "android": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "args": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": ["appbundle"]
+            }
+          }
+        }
+      }
+    },
+    "deploy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "firebase": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "project_id": { "type": "string" },
+            "on": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["main", "tag"] },
+              "default": ["main"]
+            },
+            "preview_on_pr": { "type": "boolean", "default": false }
+          }
+        },
+        "pages": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "on": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["main", "tag"] },
+              "default": ["main"]
+            },
+            "source": { "type": "string", "default": "web" }
+          }
+        }
+      }
+    },
+    "publish": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pub": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "path": { "type": "string", "default": "." },
+            "dry_run_on_pr": { "type": "boolean", "default": true }
+          }
+        }
+      }
+    },
+    "hooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "local": { "type": "boolean", "default": true }
+      }
+    }
+  }
+}

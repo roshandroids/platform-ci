@@ -1,0 +1,150 @@
+name: Read ci.yaml
+description: Parse platform-ci config into workflow outputs
+
+inputs:
+  config-path:
+    description: Path to ci.yaml relative to workspace root
+    required: false
+    default: ci.yaml
+
+outputs:
+  schema:
+    description: Config schema version
+    value: ${{ steps.parse.outputs.schema }}
+  flutter:
+    description: Flutter SDK version or channel
+    value: ${{ steps.parse.outputs.flutter }}
+  kind:
+    description: app | package | melos | cli
+    value: ${{ steps.parse.outputs.kind }}
+  paths_json:
+    description: JSON array of package paths
+    value: ${{ steps.parse.outputs.paths_json }}
+  primary_path:
+    description: First package path
+    value: ${{ steps.parse.outputs.primary_path }}
+  format:
+    description: Run dart format
+    value: ${{ steps.parse.outputs.format }}
+  analyze:
+    description: Run analyzer
+    value: ${{ steps.parse.outputs.analyze }}
+  test:
+    description: Run tests
+    value: ${{ steps.parse.outputs.test }}
+  coverage:
+    description: Collect coverage
+    value: ${{ steps.parse.outputs.coverage }}
+  melos_filter:
+    description: Optional melos package filter
+    value: ${{ steps.parse.outputs.melos_filter }}
+  pr_builds_json:
+    description: JSON array of PR build targets
+    value: ${{ steps.parse.outputs.pr_builds_json }}
+  main_builds_json:
+    description: JSON array of main build targets
+    value: ${{ steps.parse.outputs.main_builds_json }}
+  release_targets_json:
+    description: JSON array of release build targets
+    value: ${{ steps.parse.outputs.release_targets_json }}
+  web_args_json:
+    description: JSON array of flutter build web args
+    value: ${{ steps.parse.outputs.web_args_json }}
+  android_args_json:
+    description: JSON array of flutter build android args
+    value: ${{ steps.parse.outputs.android_args_json }}
+  firebase_enabled:
+    description: Firebase deploy enabled
+    value: ${{ steps.parse.outputs.firebase_enabled }}
+  firebase_project_id:
+    description: Firebase project id
+    value: ${{ steps.parse.outputs.firebase_project_id }}
+  firebase_preview_on_pr:
+    description: Preview channels on PR
+    value: ${{ steps.parse.outputs.firebase_preview_on_pr }}
+  pages_enabled:
+    description: GitHub Pages deploy enabled
+    value: ${{ steps.parse.outputs.pages_enabled }}
+  pages_source:
+    description: Artifact source for Pages
+    value: ${{ steps.parse.outputs.pages_source }}
+  pub_enabled:
+    description: pub.dev publish enabled
+    value: ${{ steps.parse.outputs.pub_enabled }}
+  pub_path:
+    description: Package path for pub publish
+    value: ${{ steps.parse.outputs.pub_path }}
+  pub_dry_run_on_pr:
+    description: Dry-run publish on PR
+    value: ${{ steps.parse.outputs.pub_dry_run_on_pr }}
+
+runs:
+  using: composite
+  steps:
+    - name: Parse ci.yaml
+      id: parse
+      shell: bash
+      env:
+        CONFIG_PATH: ${{ inputs.config-path }}
+      run: |
+        set -euo pipefail
+        if [[ ! -f "$CONFIG_PATH" ]]; then
+          echo "::error::Missing config file: $CONFIG_PATH"
+          exit 1
+        fi
+
+        ruby -ryaml -e '
+        path = ENV.fetch("CONFIG_PATH")
+        cfg = YAML.load_file(path)
+        abort("ci.yaml root must be a mapping") unless cfg.is_a?(Hash)
+
+        schema = cfg["schema"]
+        abort("schema must be 1") unless schema == 1
+
+        flutter = cfg["flutter"]
+        abort("flutter is required") if flutter.nil? || flutter.to_s.empty?
+
+        kind = cfg["kind"]
+        abort("kind must be app|package|melos|cli") unless %w[app package melos cli].include?(kind)
+
+        paths = cfg["paths"]
+        abort("paths must be a non-empty array") unless paths.is_a?(Array) && !paths.empty?
+
+        quality = cfg["quality"].is_a?(Hash) ? cfg["quality"] : {}
+        build = cfg["build"].is_a?(Hash) ? cfg["build"] : {}
+        web = build["web"].is_a?(Hash) ? build["web"] : {}
+        android = build["android"].is_a?(Hash) ? build["android"] : {}
+        deploy = cfg["deploy"].is_a?(Hash) ? cfg["deploy"] : {}
+        firebase = deploy["firebase"].is_a?(Hash) ? deploy["firebase"] : {}
+        pages = deploy["pages"].is_a?(Hash) ? deploy["pages"] : {}
+        publish = cfg["publish"].is_a?(Hash) ? cfg["publish"] : {}
+        pub = publish["pub"].is_a?(Hash) ? publish["pub"] : {}
+
+        require "json"
+        out = ENV.fetch("GITHUB_OUTPUT")
+        File.open(out, "a") do |f|
+          f.puts "schema=#{schema}"
+          f.puts "flutter=#{flutter}"
+          f.puts "kind=#{kind}"
+          f.puts "paths_json=#{JSON.generate(paths)}"
+          f.puts "primary_path=#{paths.first}"
+          f.puts "format=#{quality.key?("format") ? !!quality["format"] : true}"
+          f.puts "analyze=#{quality.key?("analyze") ? !!quality["analyze"] : true}"
+          f.puts "test=#{quality.key?("test") ? !!quality["test"] : true}"
+          f.puts "coverage=#{quality.key?("coverage") ? !!quality["coverage"] : false}"
+          f.puts "melos_filter=#{quality["melos_filter"].to_s}"
+          f.puts "pr_builds_json=#{JSON.generate(cfg["pr_builds"] || [])}"
+          f.puts "main_builds_json=#{JSON.generate(cfg["main_builds"] || [])}"
+          f.puts "release_targets_json=#{JSON.generate(cfg["release_targets"] || [])}"
+          f.puts "web_args_json=#{JSON.generate(web["args"] || ["--release"])}"
+          f.puts "android_args_json=#{JSON.generate(android["args"] || ["appbundle"])}"
+          f.puts "firebase_enabled=#{firebase.key?("enabled") ? !!firebase["enabled"] : false}"
+          f.puts "firebase_project_id=#{firebase["project_id"].to_s}"
+          f.puts "firebase_preview_on_pr=#{firebase.key?("preview_on_pr") ? !!firebase["preview_on_pr"] : false}"
+          f.puts "pages_enabled=#{pages.key?("enabled") ? !!pages["enabled"] : false}"
+          f.puts "pages_source=#{pages["source"] || "web"}"
+          f.puts "pub_enabled=#{pub.key?("enabled") ? !!pub["enabled"] : false}"
+          f.puts "pub_path=#{pub["path"] || "."}"
+          f.puts "pub_dry_run_on_pr=#{pub.key?("dry_run_on_pr") ? !!pub["dry_run_on_pr"] : true}"
+        end
+        '

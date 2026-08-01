@@ -1,0 +1,210 @@
+name: Build
+
+# Callable: build targets from ci.yaml; upload artifacts (build once).
+# trigger: pull_request → pr_builds | push/workflow_dispatch → main_builds | release → release_targets
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        description: Path to ci.yaml
+        type: string
+        required: false
+        default: ci.yaml
+      trigger:
+        description: pull_request | push | release | workflow_dispatch
+        type: string
+        required: true
+      sha:
+        description: Artifact name suffix (default github.sha)
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  resolve:
+    name: Resolve targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      targets_json: ${{ steps.pick.outputs.targets_json }}
+      flutter: ${{ steps.cfg.outputs.flutter }}
+      primary_path: ${{ steps.cfg.outputs.primary_path }}
+      kind: ${{ steps.cfg.outputs.kind }}
+      web_args_json: ${{ steps.cfg.outputs.web_args_json }}
+      android_args_json: ${{ steps.cfg.outputs.android_args_json }}
+      artifact_sha: ${{ steps.pick.outputs.artifact_sha }}
+      has_targets: ${{ steps.pick.outputs.has_targets }}
+    steps:
+      - name: Checkout consumer
+        uses: actions/checkout@v4
+
+      - name: Resolve platform-ci ref
+        id: platform
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          without_ref="${WORKFLOW_REF%%@*}"
+          ref="${WORKFLOW_REF#*@}"
+          owner="$(echo "$without_ref" | cut -d/ -f1)"
+          name="$(echo "$without_ref" | cut -d/ -f2)"
+          echo "repository=${owner}/${name}" >> "$GITHUB_OUTPUT"
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout platform-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.platform.outputs.repository }}
+          ref: ${{ steps.platform.outputs.ref }}
+          path: _platform_ci
+          sparse-checkout: |
+            .github/actions
+          sparse-checkout-cone-mode: true
+
+      - name: Read config
+        id: cfg
+        uses: ./_platform_ci/.github/actions/read-config
+        with:
+          config-path: ${{ inputs.config-path }}
+
+      - name: Pick targets
+        id: pick
+        shell: bash
+        env:
+          TRIGGER: ${{ inputs.trigger }}
+          PR_BUILDS: ${{ steps.cfg.outputs.pr_builds_json }}
+          MAIN_BUILDS: ${{ steps.cfg.outputs.main_builds_json }}
+          RELEASE_TARGETS: ${{ steps.cfg.outputs.release_targets_json }}
+          SHA_INPUT: ${{ inputs.sha }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          case "$TRIGGER" in
+            pull_request) targets="$PR_BUILDS" ;;
+            push) targets="$MAIN_BUILDS" ;;
+            release) targets="$RELEASE_TARGETS" ;;
+            workflow_dispatch) targets="$MAIN_BUILDS" ;;
+            *)
+              echo "::error::Unknown trigger: $TRIGGER"
+              exit 1
+              ;;
+          esac
+          sha="${SHA_INPUT:-$GITHUB_SHA}"
+          count="$(echo "$targets" | jq 'length')"
+          echo "targets_json=$targets" >> "$GITHUB_OUTPUT"
+          echo "artifact_sha=$sha" >> "$GITHUB_OUTPUT"
+          if [[ "$count" -gt 0 ]]; then
+            echo "has_targets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_targets=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Targets ($TRIGGER): $targets"
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: resolve
+    if: needs.resolve.outputs.has_targets == 'true'
+    runs-on: ${{ matrix.target == 'ios' && 'macos-latest' || matrix.target == 'macos' && 'macos-latest' || matrix.target == 'windows' && 'windows-latest' || 'ubuntu-latest' }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.resolve.outputs.targets_json) }}
+    steps:
+      - name: Checkout consumer
+        uses: actions/checkout@v4
+
+      - name: Resolve platform-ci ref
+        id: platform
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          without_ref="${WORKFLOW_REF%%@*}"
+          ref="${WORKFLOW_REF#*@}"
+          owner="$(echo "$without_ref" | cut -d/ -f1)"
+          name="$(echo "$without_ref" | cut -d/ -f2)"
+          echo "repository=${owner}/${name}" >> "$GITHUB_OUTPUT"
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout platform-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.platform.outputs.repository }}
+          ref: ${{ steps.platform.outputs.ref }}
+          path: _platform_ci
+          sparse-checkout: |
+            .github/actions
+          sparse-checkout-cone-mode: true
+
+      - name: Flutter setup
+        uses: ./_platform_ci/.github/actions/flutter-setup
+        with:
+          flutter-version: ${{ needs.resolve.outputs.flutter }}
+          working-directory: ${{ needs.resolve.outputs.primary_path }}
+
+      - name: Build web
+        if: matrix.target == 'web'
+        shell: bash
+        working-directory: ${{ needs.resolve.outputs.primary_path }}
+        env:
+          WEB_ARGS_JSON: ${{ needs.resolve.outputs.web_args_json }}
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2046
+          flutter build web $(echo "$WEB_ARGS_JSON" | jq -r '.[]')
+          mkdir -p "${GITHUB_WORKSPACE}/dist/web"
+          cp -R build/web/. "${GITHUB_WORKSPACE}/dist/web/"
+
+      - name: Build android
+        if: matrix.target == 'android'
+        shell: bash
+        working-directory: ${{ needs.resolve.outputs.primary_path }}
+        env:
+          ANDROID_ARGS_JSON: ${{ needs.resolve.outputs.android_args_json }}
+        run: |
+          set -euo pipefail
+          args="$(echo "$ANDROID_ARGS_JSON" | jq -r '.[]' | tr '\n' ' ')"
+          # Default appbundle; allow apk via ci.yaml build.android.args
+          # shellcheck disable=SC2086
+          flutter build $args
+          mkdir -p "${GITHUB_WORKSPACE}/dist/android"
+          if [[ -d build/app/outputs ]]; then
+            cp -R build/app/outputs/. "${GITHUB_WORKSPACE}/dist/android/"
+          fi
+
+      - name: Build cli
+        if: matrix.target == 'cli'
+        shell: bash
+        working-directory: ${{ needs.resolve.outputs.primary_path }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/dist/cli"
+          # Compile first bin-like entry if present; else dart compile exe on bin/*.dart
+          if compgen -G "bin/*.dart" > /dev/null; then
+            for entry in bin/*.dart; do
+              name="$(basename "$entry" .dart)"
+              dart compile exe "$entry" -o "${GITHUB_WORKSPACE}/dist/cli/${name}"
+            done
+          else
+            echo "::error::cli target requires bin/*.dart"
+            exit 1
+          fi
+
+      - name: Unsupported target (v1)
+        if: matrix.target == 'ios' || matrix.target == 'macos' || matrix.target == 'linux' || matrix.target == 'windows'
+        shell: bash
+        run: |
+          echo "::error::Target '${{ matrix.target }}' not implemented in platform-ci v1. Use web, android, or cli."
+          exit 1
+
+      - name: Upload artifact
+        if: matrix.target == 'web' || matrix.target == 'android' || matrix.target == 'cli'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.target }}-${{ needs.resolve.outputs.artifact_sha }}
+          path: dist/${{ matrix.target }}
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,51 @@
+schema: 1
+
+# Pin Flutter for apps; packages may use a channel name (e.g. stable).
+flutter: "3.38.9"
+kind: app
+
+paths:
+  - .
+
+quality:
+  format: true
+  analyze: true
+  test: true
+  coverage: false
+
+# Empty = quality only on PRs (saves minutes).
+pr_builds: []
+
+# Build web on main for deploy pipelines.
+main_builds:
+  - web
+
+release_targets:
+  - web
+
+build:
+  web:
+    args:
+      - "--release"
+
+deploy:
+  firebase:
+    enabled: false
+    project_id: ""
+    on:
+      - main
+    preview_on_pr: false
+  pages:
+    enabled: false
+    on:
+      - main
+    source: web
+
+publish:
+  pub:
+    enabled: false
+    path: .
+    dry_run_on_pr: true
+
+hooks:
+  local: true

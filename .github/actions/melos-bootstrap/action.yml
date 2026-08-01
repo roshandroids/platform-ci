@@ -1,0 +1,34 @@
+name: Melos bootstrap
+description: Activate Melos and bootstrap workspace packages
+
+inputs:
+  working-directory:
+    description: Repo root containing melos.yaml
+    required: false
+    default: .
+  filter:
+    description: Optional melos package filter
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Activate Melos
+      shell: bash
+      run: dart pub global activate melos
+
+    - name: Add pub-cache bin to PATH
+      shell: bash
+      run: echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+    - name: Melos bootstrap
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+        if [[ -n "${{ inputs.filter }}" ]]; then
+          melos bootstrap --scope="${{ inputs.filter }}"
+        else
+          melos bootstrap
+        fi

@@ -1,0 +1,17 @@
+schema: 1
+flutter: "3.38.9"
+kind: melos
+paths:
+  - .
+quality:
+  format: true
+  analyze: true
+  test: true
+  melos_filter: ""
+pr_builds: []
+main_builds:
+  - web
+release_targets:
+  - web
+hooks:
+  local: true

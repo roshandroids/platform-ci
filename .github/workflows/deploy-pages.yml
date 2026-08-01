@@ -1,0 +1,83 @@
+name: Deploy Pages
+
+# Callable: deploy pre-built web (or docs) artifact to GitHub Pages.
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        type: string
+        required: false
+        default: ci.yaml
+      artifact-sha:
+        description: SHA used in artifact name build-<source>-<sha>
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    name: GitHub Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout consumer
+        uses: actions/checkout@v4
+
+      - name: Resolve platform-ci ref
+        id: platform
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          without_ref="${WORKFLOW_REF%%@*}"
+          ref="${WORKFLOW_REF#*@}"
+          owner="$(echo "$without_ref" | cut -d/ -f1)"
+          name="$(echo "$without_ref" | cut -d/ -f2)"
+          echo "repository=${owner}/${name}" >> "$GITHUB_OUTPUT"
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout platform-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.platform.outputs.repository }}
+          ref: ${{ steps.platform.outputs.ref }}
+          path: _platform_ci
+          sparse-checkout: |
+            .github/actions
+          sparse-checkout-cone-mode: true
+
+      - name: Read config
+        id: cfg
+        uses: ./_platform_ci/.github/actions/read-config
+        with:
+          config-path: ${{ inputs.config-path }}
+
+      - name: Guard enabled
+        if: steps.cfg.outputs.pages_enabled != 'true'
+        shell: bash
+        run: |
+          echo "::error::deploy.pages.enabled is false in ci.yaml"
+          exit 1
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ steps.cfg.outputs.pages_source }}-${{ inputs.artifact-sha }}
+          path: _site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

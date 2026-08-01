@@ -1,0 +1,33 @@
+schema: 1
+flutter: "3.38.9"
+kind: app
+paths:
+  - .
+quality:
+  format: true
+  analyze: true
+  test: true
+  coverage: false
+pr_builds: []
+main_builds:
+  - web
+release_targets:
+  - web
+build:
+  web:
+    args:
+      - "--release"
+deploy:
+  firebase:
+    enabled: true
+    project_id: example-project
+    preview_on_pr: false
+  pages:
+    enabled: false
+    source: web
+publish:
+  pub:
+    enabled: false
+    path: .
+hooks:
+  local: true

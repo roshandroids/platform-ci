@@ -1,0 +1,25 @@
+# Thin consumer workflow — copy to .github/workflows/ci.yml
+# Replace OWNER/platform-ci with your fork; pin @v1 after first platform release.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    uses: OWNER/platform-ci/.github/workflows/quality.yml@v1
+    with:
+      config-path: ci.yaml
+
+  build:
+    needs: quality
+    uses: OWNER/platform-ci/.github/workflows/build.yml@v1
+    with:
+      config-path: ci.yaml
+      trigger: ${{ github.event_name }}

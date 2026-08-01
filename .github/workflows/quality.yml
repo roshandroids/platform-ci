@@ -1,0 +1,131 @@
+name: Quality
+
+# Callable: format / analyze / test from ci.yaml
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        description: Path to ci.yaml
+        type: string
+        required: false
+        default: ci.yaml
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout consumer
+        uses: actions/checkout@v4
+
+      - name: Resolve platform-ci ref
+        id: platform
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          without_ref="${WORKFLOW_REF%%@*}"
+          ref="${WORKFLOW_REF#*@}"
+          owner="$(echo "$without_ref" | cut -d/ -f1)"
+          name="$(echo "$without_ref" | cut -d/ -f2)"
+          echo "repository=${owner}/${name}" >> "$GITHUB_OUTPUT"
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout platform-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.platform.outputs.repository }}
+          ref: ${{ steps.platform.outputs.ref }}
+          path: _platform_ci
+          sparse-checkout: |
+            .github/actions
+          sparse-checkout-cone-mode: true
+
+      - name: Read config
+        id: cfg
+        uses: ./_platform_ci/.github/actions/read-config
+        with:
+          config-path: ${{ inputs.config-path }}
+
+      - name: Flutter setup
+        uses: ./_platform_ci/.github/actions/flutter-setup
+        with:
+          flutter-version: ${{ steps.cfg.outputs.flutter }}
+          working-directory: ${{ steps.cfg.outputs.primary_path }}
+          pub-get: ${{ steps.cfg.outputs.kind == 'melos' && 'false' || 'true' }}
+
+      - name: Melos bootstrap
+        if: steps.cfg.outputs.kind == 'melos'
+        uses: ./_platform_ci/.github/actions/melos-bootstrap
+        with:
+          filter: ${{ steps.cfg.outputs.melos_filter }}
+
+      - name: Format
+        if: steps.cfg.outputs.format == 'true'
+        shell: bash
+        env:
+          KIND: ${{ steps.cfg.outputs.kind }}
+          PATHS_JSON: ${{ steps.cfg.outputs.paths_json }}
+          MELOS_FILTER: ${{ steps.cfg.outputs.melos_filter }}
+        run: |
+          set -euo pipefail
+          if [[ "$KIND" == "melos" ]]; then
+            if [[ -n "$MELOS_FILTER" ]]; then
+              melos exec --scope="$MELOS_FILTER" -- dart format --set-exit-if-changed .
+            else
+              melos exec -- dart format --set-exit-if-changed .
+            fi
+          else
+            echo "$PATHS_JSON" | jq -r '.[]' | while read -r p; do
+              (cd "$p" && dart format --set-exit-if-changed .)
+            done
+          fi
+
+      - name: Analyze
+        if: steps.cfg.outputs.analyze == 'true'
+        shell: bash
+        env:
+          KIND: ${{ steps.cfg.outputs.kind }}
+          PATHS_JSON: ${{ steps.cfg.outputs.paths_json }}
+          MELOS_FILTER: ${{ steps.cfg.outputs.melos_filter }}
+        run: |
+          set -euo pipefail
+          if [[ "$KIND" == "melos" ]]; then
+            if [[ -n "$MELOS_FILTER" ]]; then
+              melos exec --scope="$MELOS_FILTER" -- flutter analyze --fatal-infos
+            else
+              melos exec -- flutter analyze --fatal-infos
+            fi
+          else
+            echo "$PATHS_JSON" | jq -r '.[]' | while read -r p; do
+              (cd "$p" && flutter analyze --fatal-infos)
+            done
+          fi
+
+      - name: Test
+        if: steps.cfg.outputs.test == 'true'
+        shell: bash
+        env:
+          KIND: ${{ steps.cfg.outputs.kind }}
+          PATHS_JSON: ${{ steps.cfg.outputs.paths_json }}
+          MELOS_FILTER: ${{ steps.cfg.outputs.melos_filter }}
+          COVERAGE: ${{ steps.cfg.outputs.coverage }}
+        run: |
+          set -euo pipefail
+          cover_args=()
+          if [[ "$COVERAGE" == "true" ]]; then
+            cover_args=(--coverage)
+          fi
+          if [[ "$KIND" == "melos" ]]; then
+            if [[ -n "$MELOS_FILTER" ]]; then
+              melos exec --scope="$MELOS_FILTER" -- flutter test "${cover_args[@]}"
+            else
+              melos exec -- flutter test "${cover_args[@]}"
+            fi
+          else
+            echo "$PATHS_JSON" | jq -r '.[]' | while read -r p; do
+              (cd "$p" && flutter test "${cover_args[@]}")
+            done
+          fi

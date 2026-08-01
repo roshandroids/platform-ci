@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7
+
+### Fixed
+
+- Always apply `--exclude-tags=golden` when `exclude_golden_from_test` is true, even if `quality.golden` is false
+
 ## 1.1.6
 
 ### Fixed

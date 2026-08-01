@@ -96,7 +96,10 @@ jobs:
           if [[ "$COVERAGE" == "true" ]]; then
             test_args+=(--coverage)
           fi
-          if [[ "$GOLDEN" == "true" && "$EXCLUDE_GOLDEN" == "true" ]]; then
+          # Exclude golden-tagged tests from the unit/widget lane whenever
+          # exclude_golden_from_test is true (default), even if quality.golden
+          # is off — otherwise flaky goldens still run under Test.
+          if [[ "$EXCLUDE_GOLDEN" == "true" ]]; then
             test_args+=(--exclude-tags=golden)
           fi
           if [[ "$KIND" == "melos" ]]; then

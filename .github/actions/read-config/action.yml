@@ -1,0 +1,82 @@
+name: read-config
+description: Parse ci/project.yaml into workflow outputs
+inputs:
+  config_path:
+    description: Path to project.yaml (repo-relative)
+    required: false
+    default: ci/project.yaml
+outputs:
+  flutter_version:
+    description: Flutter SDK pin (empty if Dart-only)
+    value: ${{ steps.parse.outputs.flutter_version }}
+  dart_version:
+    description: Dart SDK pin
+    value: ${{ steps.parse.outputs.dart_version }}
+  kind:
+    description: Project kind
+    value: ${{ steps.parse.outputs.kind }}
+  melos:
+    description: Whether Melos is enabled
+    value: ${{ steps.parse.outputs.melos }}
+  primary_package:
+    description: First package path
+    value: ${{ steps.parse.outputs.primary_package }}
+  packages_json:
+    description: JSON array of package paths
+    value: ${{ steps.parse.outputs.packages_json }}
+  use_flutter:
+    description: true if Flutter SDK required
+    value: ${{ steps.parse.outputs.use_flutter }}
+  quality_format:
+    value: ${{ steps.parse.outputs.quality_format }}
+  quality_analyze:
+    value: ${{ steps.parse.outputs.quality_analyze }}
+  quality_test:
+    value: ${{ steps.parse.outputs.quality_test }}
+  quality_coverage:
+    value: ${{ steps.parse.outputs.quality_coverage }}
+  format_paths:
+    description: Space-separated format paths (relative to primary package)
+    value: ${{ steps.parse.outputs.format_paths }}
+  analyze_paths:
+    description: Space-separated analyze paths
+    value: ${{ steps.parse.outputs.analyze_paths }}
+  test_path:
+    value: ${{ steps.parse.outputs.test_path }}
+  pub_get_dirs:
+    description: Space-separated dirs for pub get
+    value: ${{ steps.parse.outputs.pub_get_dirs }}
+  build_on_main_json:
+    value: ${{ steps.parse.outputs.build_on_main_json }}
+  build_on_release_json:
+    value: ${{ steps.parse.outputs.build_on_release_json }}
+  web_on_pr:
+    value: ${{ steps.parse.outputs.web_on_pr }}
+  web_base_href:
+    value: ${{ steps.parse.outputs.web_base_href }}
+  web_path:
+    value: ${{ steps.parse.outputs.web_path }}
+  deploy_target:
+    value: ${{ steps.parse.outputs.deploy_target }}
+  deploy_on_main:
+    value: ${{ steps.parse.outputs.deploy_on_main }}
+  release_mode:
+    value: ${{ steps.parse.outputs.release_mode }}
+  release_github:
+    value: ${{ steps.parse.outputs.release_github }}
+  release_pub_dev:
+    value: ${{ steps.parse.outputs.release_pub_dev }}
+  cli_entrypoint:
+    value: ${{ steps.parse.outputs.cli_entrypoint }}
+  cli_name:
+    value: ${{ steps.parse.outputs.cli_name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Parse project.yaml
+      id: parse
+      shell: bash
+      env:
+        CONFIG_PATH: ${{ inputs.config_path }}
+      run: bash "${{ github.action_path }}/parse.sh"

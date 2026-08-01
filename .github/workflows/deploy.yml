@@ -1,0 +1,36 @@
+# Deploy web artifact to GitHub Pages or Firebase.
+# Status: stub — interface frozen; implementation next.
+name: deploy
+
+on:
+  workflow_call:
+    inputs:
+      config_path:
+        type: string
+        required: false
+        default: ci/project.yaml
+      artifact_name:
+        type: string
+        required: false
+        default: web-site
+      platform_repository:
+        type: string
+        required: false
+        default: ""
+      platform_ref:
+        type: string
+        required: false
+        default: ""
+
+permissions: {}
+
+jobs:
+  deploy:
+    name: Deploy (stub)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stub
+        run: |
+          echo "::warning::deploy.yml stub — not implemented yet."
+          echo "artifact_name=${{ inputs.artifact_name }}"
+          exit 1

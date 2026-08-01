@@ -1,0 +1,40 @@
+# Dogfood: validate example configs + schema locally on this repo.
+name: self-test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: self-test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-config:
+    name: Validate example configs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse each example with read-config action
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out
+          for cfg in examples/*/ci/project.yaml; do
+            echo "=== $cfg ==="
+            export CONFIG_PATH="$cfg"
+            export GITHUB_OUTPUT="/tmp/out/$(echo "$cfg" | tr '/' '_').out"
+            : > "$GITHUB_OUTPUT"
+            bash .github/actions/read-config/parse.sh
+            cat "$GITHUB_OUTPUT"
+            echo
+          done
+
+      - name: Schema presence
+        run: test -f schema/project.schema.json

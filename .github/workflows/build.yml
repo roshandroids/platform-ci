@@ -1,0 +1,40 @@
+# Build platform artifacts from ci/project.yaml.
+# Status: stub — interface frozen; implementation next.
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      config_path:
+        type: string
+        required: false
+        default: ci/project.yaml
+      platforms:
+        description: JSON array override (empty = use build.on_main / caller choice)
+        type: string
+        required: false
+        default: ""
+      platform_repository:
+        type: string
+        required: false
+        default: ""
+      platform_ref:
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (stub)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stub
+        run: |
+          echo "::warning::build.yml stub — not implemented yet."
+          echo "config_path=${{ inputs.config_path }}"
+          echo "platforms=${{ inputs.platforms }}"
+          exit 1

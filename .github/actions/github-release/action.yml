@@ -1,0 +1,68 @@
+name: github-release
+description: Create GitHub Release and upload assets from a directory
+inputs:
+  tag:
+    description: Release tag (e.g. v1.0.0)
+    required: true
+  title:
+    description: Release title
+    required: true
+  notes_file:
+    description: Path to notes markdown (optional)
+    required: false
+    default: ""
+  generate_notes:
+    description: Append GitHub-generated notes
+    required: false
+    default: "false"
+  prerelease:
+    description: Mark as prerelease
+    required: false
+    default: "false"
+  latest:
+    description: Mark as latest
+    required: false
+    default: "true"
+  assets_dir:
+    description: Directory of files to upload
+    required: false
+    default: dist
+  token:
+    description: GitHub token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Create release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        TAG: ${{ inputs.tag }}
+        TITLE: ${{ inputs.title }}
+        NOTES_FILE: ${{ inputs.notes_file }}
+        GENERATE_NOTES: ${{ inputs.generate_notes }}
+        PRERELEASE: ${{ inputs.prerelease }}
+        LATEST: ${{ inputs.latest }}
+        ASSETS_DIR: ${{ inputs.assets_dir }}
+      run: |
+        set -euo pipefail
+        args=(
+          "$TAG"
+          --repo "$GITHUB_REPOSITORY"
+          --title "$TITLE"
+          --prerelease="$PRERELEASE"
+          --latest="$LATEST"
+        )
+        if [[ -n "$NOTES_FILE" && -f "$NOTES_FILE" ]]; then
+          args+=(--notes-file "$NOTES_FILE")
+        else
+          args+=(--notes "Release $TAG")
+        fi
+        if [[ "$GENERATE_NOTES" == "true" ]]; then
+          args+=(--generate-notes)
+        fi
+        if [[ -d "$ASSETS_DIR" ]] && compgen -G "$ASSETS_DIR"/* > /dev/null; then
+          args+=("$ASSETS_DIR"/*)
+        fi
+        gh release create "${args[@]}"

@@ -1,0 +1,32 @@
+# ci/project.yaml — flutter app example
+schema: 1
+flutter: "3.38.9"
+kind: flutter_app
+melos: false
+packages:
+  - .
+
+quality:
+  format: true
+  analyze: true
+  test: true
+  coverage: false
+  format_paths:
+    - lib
+    - test
+
+build:
+  on_main: [web]
+  on_release: [web, android]
+  web:
+    base_href: "/REPO_NAME/"
+    on_pr: false
+
+deploy:
+  on_main: false
+  target: pages
+
+release:
+  mode: manual
+  github_release: true
+  pub_dev: false

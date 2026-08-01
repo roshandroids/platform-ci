@@ -1,0 +1,22 @@
+name: setup-melos
+description: Activate Melos and bootstrap workspace
+inputs:
+  run_bootstrap:
+    description: Run melos bootstrap
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Activate Melos
+      shell: bash
+      run: |
+        set -euo pipefail
+        dart pub global activate melos
+        echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+    - name: Melos bootstrap
+      if: inputs.run_bootstrap == 'true'
+      shell: bash
+      run: melos bootstrap

@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/platform-ci/platform-ci/main/schema/project.schema.json",
+  "title": "platform-ci project config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "kind"],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "const": 1,
+      "description": "Config schema version. Bump only with platform-ci major."
+    },
+    "flutter": {
+      "type": ["string", "null"],
+      "description": "Pinned Flutter SDK. Null/omit for Dart-only."
+    },
+    "dart": {
+      "type": "string",
+      "description": "Pinned Dart SDK when flutter is unset."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["flutter_app", "dart_package", "melos_workspace", "cli"]
+    },
+    "melos": {
+      "type": "boolean",
+      "default": false
+    },
+    "packages": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "default": ["."]
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": { "type": "boolean", "default": true },
+        "analyze": { "type": "boolean", "default": true },
+        "test": { "type": "boolean", "default": true },
+        "coverage": { "type": "boolean", "default": false },
+        "format_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "analyze_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "test_path": {
+          "type": "string",
+          "description": "Directory for dart/flutter test (default: package root)."
+        },
+        "pub_get_dirs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Extra directories to flutter/dart pub get."
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "on_main": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "web",
+              "android",
+              "linux_cli",
+              "windows_cli",
+              "macos_cli",
+              "linux_desktop"
+            ]
+          }
+        },
+        "on_release": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "web",
+              "android",
+              "linux_cli",
+              "windows_cli",
+              "macos_cli",
+              "linux_desktop",
+              "ios"
+            ]
+          }
+        },
+        "web": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "base_href": { "type": "string" },
+            "on_pr": { "type": "boolean", "default": false },
+            "path": { "type": "string", "description": "App directory for web build." }
+          }
+        },
+        "android": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": { "type": "string", "enum": ["apk", "aab"], "default": "apk" },
+            "path": { "type": "string" }
+          }
+        },
+        "cli": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "entrypoint": { "type": "string" },
+            "name": { "type": "string" }
+          }
+        }
+      }
+    },
+    "deploy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "on_main": { "type": "boolean", "default": false },
+        "target": {
+          "type": "string",
+          "enum": ["pages", "firebase", "none"],
+          "default": "none"
+        },
+        "pages": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "environment": { "type": "string", "default": "github-pages" }
+          }
+        },
+        "firebase": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "project_id": { "type": "string" },
+            "site": { "type": "string" }
+          }
+        }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "type": "string", "enum": ["manual", "tag"], "default": "manual" },
+        "github_release": { "type": "boolean", "default": true },
+        "pub_dev": { "type": "boolean", "default": false }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "quality": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "web": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

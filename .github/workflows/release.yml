@@ -1,0 +1,67 @@
+# Release: quality → build → GitHub Release (+ optional pub.dev).
+# Status: stub — interface frozen; implementation next.
+name: release
+
+on:
+  workflow_call:
+    inputs:
+      config_path:
+        type: string
+        required: false
+        default: ci/project.yaml
+      version:
+        description: Tag (v-prefixed semver)
+        type: string
+        required: true
+      release_name:
+        type: string
+        required: true
+      prerelease:
+        type: boolean
+        required: false
+        default: true
+      latest:
+        type: boolean
+        required: false
+        default: false
+      platform_repository:
+        type: string
+        required: false
+        default: ""
+      platform_ref:
+        type: string
+        required: false
+        default: ""
+  workflow_dispatch:
+    inputs:
+      config_path:
+        type: string
+        required: false
+        default: ci/project.yaml
+      version:
+        type: string
+        required: true
+      release_name:
+        type: string
+        required: true
+      prerelease:
+        type: boolean
+        required: false
+        default: true
+      latest:
+        type: boolean
+        required: false
+        default: false
+
+permissions: {}
+
+jobs:
+  release:
+    name: Release (stub)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stub
+        run: |
+          echo "::warning::release.yml stub — not implemented yet."
+          echo "version=${{ inputs.version }}"
+          exit 1

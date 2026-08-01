@@ -1,0 +1,15 @@
+# Consumer caller — copy into YOUR repo as .github/workflows/ci.yml
+# Replace OWNER with your GitHub user/org.
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  quality:
+    uses: OWNER/platform-ci/.github/workflows/quality.yml@v1
+    with:
+      config_path: ci/project.yaml

@@ -1,0 +1,31 @@
+# ci/project.yaml — Melos workspace
+schema: 1
+flutter: "3.38.9"
+kind: melos_workspace
+melos: true
+packages:
+  - packages/app
+  - packages/core
+
+quality:
+  format: true
+  analyze: true
+  test: true
+  coverage: false
+
+build:
+  on_main: [web]
+  on_release: [web, android]
+  web:
+    path: packages/app
+    base_href: "/REPO_NAME/"
+    on_pr: false
+
+deploy:
+  on_main: false
+  target: pages
+
+release:
+  mode: manual
+  github_release: true
+  pub_dev: false

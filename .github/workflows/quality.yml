@@ -1,0 +1,137 @@
+# Reusable quality gate — format + analyze + test (Linux only).
+# Caller checks out their repo; this workflow checks out platform-ci for actions.
+name: quality
+
+on:
+  workflow_call:
+    inputs:
+      config_path:
+        description: Path to ci/project.yaml in the caller repo
+        type: string
+        required: false
+        default: ci/project.yaml
+      platform_repository:
+        description: Override platform-ci repo (owner/name). Empty = derive from workflow_ref.
+        type: string
+        required: false
+        default: ""
+      platform_ref:
+        description: Override platform-ci ref. Empty = derive from workflow_ref.
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout caller
+        uses: actions/checkout@v4
+
+      - name: Resolve platform-ci location
+        id: platform
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          OVERRIDE_REPO: ${{ inputs.platform_repository }}
+          OVERRIDE_REF: ${{ inputs.platform_ref }}
+        run: |
+          set -euo pipefail
+          # workflow_ref: owner/repo/.github/workflows/file.yml@refs/...
+          repo="${OVERRIDE_REPO}"
+          ref="${OVERRIDE_REF}"
+          if [[ -z "$repo" ]]; then
+            repo="${WORKFLOW_REF%%/.github/*}"
+          fi
+          if [[ -z "$ref" ]]; then
+            ref="${WORKFLOW_REF##*@}"
+          fi
+          echo "repository=$repo" >> "$GITHUB_OUTPUT"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "Using platform-ci $repo@$ref"
+
+      - name: Checkout platform-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.platform.outputs.repository }}
+          ref: ${{ steps.platform.outputs.ref }}
+          path: .platform-ci
+          sparse-checkout: |
+            .github/actions
+          sparse-checkout-cone-mode: false
+
+      - name: Read config
+        id: cfg
+        uses: ./.platform-ci/.github/actions/read-config
+        with:
+          config_path: ${{ inputs.config_path }}
+
+      - name: Setup SDK + pub get
+        uses: ./.platform-ci/.github/actions/setup-flutter
+        with:
+          flutter_version: ${{ steps.cfg.outputs.flutter_version }}
+          dart_version: ${{ steps.cfg.outputs.dart_version }}
+          use_flutter: ${{ steps.cfg.outputs.use_flutter }}
+          pub_get_dirs: ${{ steps.cfg.outputs.pub_get_dirs }}
+
+      - name: Setup Melos
+        if: steps.cfg.outputs.melos == 'true'
+        uses: ./.platform-ci/.github/actions/setup-melos
+
+      - name: Format
+        if: steps.cfg.outputs.quality_format == 'true'
+        shell: bash
+        env:
+          USE_FLUTTER: ${{ steps.cfg.outputs.use_flutter }}
+          PRIMARY: ${{ steps.cfg.outputs.primary_package }}
+          PATHS: ${{ steps.cfg.outputs.format_paths }}
+        run: |
+          set -euo pipefail
+          cd "$PRIMARY"
+          # shellcheck disable=SC2086
+          if [[ "$USE_FLUTTER" == "true" ]]; then
+            dart format --output=none --set-exit-if-changed $PATHS
+          else
+            dart format --output=none --set-exit-if-changed $PATHS
+          fi
+
+      - name: Analyze
+        if: steps.cfg.outputs.quality_analyze == 'true'
+        shell: bash
+        env:
+          PRIMARY: ${{ steps.cfg.outputs.primary_package }}
+          PATHS: ${{ steps.cfg.outputs.analyze_paths }}
+        run: |
+          set -euo pipefail
+          cd "$PRIMARY"
+          # shellcheck disable=SC2086
+          dart analyze $PATHS
+
+      - name: Test
+        if: steps.cfg.outputs.quality_test == 'true'
+        shell: bash
+        env:
+          USE_FLUTTER: ${{ steps.cfg.outputs.use_flutter }}
+          TEST_PATH: ${{ steps.cfg.outputs.test_path }}
+          COVERAGE: ${{ steps.cfg.outputs.quality_coverage }}
+        run: |
+          set -euo pipefail
+          cd "$TEST_PATH"
+          args=()
+          if [[ "$COVERAGE" == "true" ]]; then
+            args+=(--coverage)
+          fi
+          if [[ ! -d test ]]; then
+            echo "No test/ directory — skip"
+            exit 0
+          fi
+          if [[ "$USE_FLUTTER" == "true" ]]; then
+            flutter test "${args[@]}"
+          else
+            dart test "${args[@]}"
+          fi

@@ -1,0 +1,30 @@
+# ci/project.yaml — Dart CLI
+schema: 1
+dart: "3.6.0"
+kind: cli
+packages:
+  - .
+
+quality:
+  format: true
+  analyze: true
+  test: true
+  format_paths:
+    - bin
+    - lib
+    - test
+
+build:
+  on_main: [linux_cli]
+  on_release: [linux_cli]
+  cli:
+    entrypoint: bin/app.dart
+    name: app
+
+deploy:
+  target: none
+
+release:
+  mode: manual
+  github_release: true
+  pub_dev: false

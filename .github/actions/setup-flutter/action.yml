@@ -1,0 +1,56 @@
+name: setup-flutter
+description: Pin Flutter or Dart SDK, cache, pub get
+inputs:
+  flutter_version:
+    description: Flutter SDK version (empty = Dart-only)
+    required: false
+    default: ""
+  dart_version:
+    description: Dart SDK when Flutter unused
+    required: false
+    default: "3.6.0"
+  use_flutter:
+    description: "true" to install Flutter
+    required: false
+    default: "true"
+  pub_get_dirs:
+    description: Space-separated directories for pub get
+    required: false
+    default: "."
+  cache:
+    description: Enable SDK/pub cache
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Flutter
+      if: inputs.use_flutter == 'true'
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ inputs.flutter_version }}
+        channel: stable
+        cache: ${{ inputs.cache == 'true' }}
+
+    - name: Setup Dart
+      if: inputs.use_flutter != 'true'
+      uses: dart-lang/setup-dart@v1
+      with:
+        sdk: ${{ inputs.dart_version }}
+
+    - name: Pub get
+      shell: bash
+      env:
+        USE_FLUTTER: ${{ inputs.use_flutter }}
+        DIRS: ${{ inputs.pub_get_dirs }}
+      run: |
+        set -euo pipefail
+        for dir in $DIRS; do
+          echo "pub get → $dir"
+          if [[ "$USE_FLUTTER" == "true" ]]; then
+            (cd "$dir" && flutter pub get)
+          else
+            (cd "$dir" && dart pub get)
+          fi
+        done

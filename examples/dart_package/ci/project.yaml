@@ -1,0 +1,27 @@
+# ci/project.yaml — pure Dart package
+schema: 1
+dart: "3.6.0"
+kind: dart_package
+packages:
+  - .
+
+quality:
+  format: true
+  analyze: true
+  test: true
+  coverage: false
+  format_paths:
+    - lib
+    - test
+
+build:
+  on_main: []
+  on_release: []
+
+deploy:
+  target: none
+
+release:
+  mode: manual
+  github_release: true
+  pub_dev: false

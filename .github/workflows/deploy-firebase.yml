@@ -35,33 +35,9 @@ jobs:
       - name: Checkout consumer
         uses: actions/checkout@v4
 
-      - name: Resolve platform-ci ref
-        id: platform
-        shell: bash
-        env:
-          WORKFLOW_REF: ${{ github.workflow_ref }}
-        run: |
-          set -euo pipefail
-          without_ref="${WORKFLOW_REF%%@*}"
-          ref="${WORKFLOW_REF#*@}"
-          owner="$(echo "$without_ref" | cut -d/ -f1)"
-          name="$(echo "$without_ref" | cut -d/ -f2)"
-          echo "repository=${owner}/${name}" >> "$GITHUB_OUTPUT"
-          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout platform-ci actions
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ steps.platform.outputs.repository }}
-          ref: ${{ steps.platform.outputs.ref }}
-          path: _platform_ci
-          sparse-checkout: |
-            .github/actions
-          sparse-checkout-cone-mode: true
-
       - name: Read config
         id: cfg
-        uses: ./_platform_ci/.github/actions/read-config
+        uses: roshandroids/platform-ci/.github/actions/read-config@v1
         with:
           config-path: ${{ inputs.config-path }}
 

@@ -101,7 +101,7 @@ Never enable costly lanes by default in templates. Empty build lists and `enable
 - Prefer simple bash + Ruby YAML parse (already used) over new runtimes
 - Prefer composite actions for repeated setup
 - Prefer reusable `workflow_call` workflows for orchestration
-- Duplicate the small “resolve platform from `github.workflow_ref`” block rather than adding fragile abstraction layers
+- Call composites as `uses: roshandroids/platform-ci/.github/actions/<name>@v1` (same floating tag as the workflow). Never resolve via `github.workflow_ref` sparse-checkout — that points at the **caller** repo.
 - Match existing file layout under `.github/actions` and `.github/workflows`
 
 ---

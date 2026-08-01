@@ -31,7 +31,9 @@ Do not design core flows around fetching artifacts from a prior Release PR run.
 
 ## Platform resolve trick
 
-Reusable workflows checkout this repo via `github.workflow_ref` into `_platform_ci/`, then `uses: ./_platform_ci/.github/actions/...`.
+Reusable workflows call composites with a pinned platform ref, e.g. `uses: roshandroids/platform-ci/.github/actions/read-config@v1`.
+
+Do **not** resolve composites via `github.workflow_ref` + sparse checkout into `_platform_ci/` — `workflow_ref` is the **caller** workflow, so that pattern checks out the consumer repo and breaks `action.yml` lookup.
 
 ## Build support
 

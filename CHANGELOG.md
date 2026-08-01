@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3
+
+### Fixed
+
+- Reusable workflows call composites via `uses: roshandroids/platform-ci/.github/actions/...@v1` instead of `github.workflow_ref` sparse-checkout (caller ref was checking out the consumer and breaking `action.yml`)
+
 ## 1.1.2
 
 ### Changed

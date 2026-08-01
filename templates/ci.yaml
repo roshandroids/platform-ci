@@ -1,3 +1,4 @@
+# Minimal defaults — everything expensive is OFF / empty until you opt in.
 schema: 1
 
 flutter: "3.38.9"
@@ -6,10 +7,12 @@ kind: app
 paths:
   - .
 
+# Opt-in Node sidecar (AI Tray, etc.)
 node:
   enabled: false
   version: "22"
 
+# Toggle each gate. False = skipped (no minutes).
 quality:
   format: true
   analyze: true
@@ -19,43 +22,30 @@ quality:
   integration: false
   scripts: []
 
+# Builds are opt-in lists. Empty = do not call build.yml (or it no-ops).
 pr_builds: []
-main_builds:
-  - web
-release_targets:
-  - web
+main_builds: []
+release_targets: []
 
+# Only matters for targets you listed above.
 build:
   web:
     args:
       - "--release"
-  macos:
-    package: zip
-  windows:
-    package: zip
 
+# All deploy sinks default off — separate caller workflows when enabled.
 deploy:
   firebase:
     enabled: false
     project_id: ""
-    on:
-      - main
-    preview_on_pr: false
   pages:
     enabled: false
-    on:
-      - main
-    source: web
   demos:
     enabled: false
-    manifest: showcase/demos.json
-    base_href_prefix: /
 
 publish:
   pub:
     enabled: false
-    path: .
-    dry_run_on_pr: true
 
 hooks:
   local: true

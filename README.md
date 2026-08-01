@@ -8,11 +8,14 @@ Covers: apps · Melos monorepos · packages · CLI · web · Android · iOS · m
 
 ## Quick start (consumer repo)
 
-1. Copy [`templates/ci.yaml`](templates/ci.yaml) → `ci.yaml` (edit targets).
+1. Copy [`templates/ci.yaml`](templates/ci.yaml) → `ci.yaml` (defaults = quality only).
 2. Copy [`templates/consumer-ci.yml`](templates/consumer-ci.yml) → `.github/workflows/ci.yml`.
-3. Use `roshandroids/platform-ci` and pin `@v1`.
+3. Pin `roshandroids/platform-ci@v1`.
+4. **Opt in** builds/deploy/release only when needed — see [`docs/OPT_IN.md`](docs/OPT_IN.md).
 
-Optional templates: deploy-firebase · release · deploy-demos.
+Nothing outside `quality.format/analyze/test` runs unless you enable it and add the matching thin workflow.
+
+Optional callers: [`consumer-ci-with-build.yml`](templates/consumer-ci-with-build.yml) · deploy-firebase · release · deploy-demos.
 
 Local: `./scripts/validate-local.sh ci.yaml`
 

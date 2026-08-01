@@ -1,0 +1,25 @@
+# Use when ci.yaml has non-empty pr_builds and/or main_builds.
+# Otherwise prefer templates/consumer-ci.yml (quality only).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    uses: roshandroids/platform-ci/.github/workflows/quality.yml@v1
+    with:
+      config-path: ci.yaml
+
+  build:
+    needs: quality
+    uses: roshandroids/platform-ci/.github/workflows/build.yml@v1
+    with:
+      config-path: ci.yaml
+      trigger: ${{ github.event_name }}

@@ -1,6 +1,6 @@
 # Compatibility — can Document_Platform / AI_Tray / agentic_flutter_template use platform-ci?
 
-**Answer:** Yes, with thin callers + `ci.yaml`. Product-specific gates stay as `quality.scripts`.
+**Answer:** Yes — each repo opts into lanes via `ci.yaml`. Platform does **not** run the full matrix for every consumer. See [OPT_IN.md](OPT_IN.md).
 
 | Repo | Fit | How |
 |------|-----|-----|

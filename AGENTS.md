@@ -27,7 +27,7 @@ Product policy lives in the **consumer** `ci.yaml`. This repo owns workflows + c
 
 1. **Build once** — deploy/release must download artifacts; never re-run `flutter build` in deploy jobs.
 2. **Config over forks** — extend `ci.yaml` / schema; do not tell consumers to copy-paste huge workflows.
-3. **Minute thrift** — default `pr_builds: []`; no macOS/Windows on PR by default; desktop = release/tag.
+3. **Minute thrift / opt-in** — default `pr_builds`/`main_builds`/`release_targets` empty; deploy/publish off; no macOS/Windows on PR. See [docs/OPT_IN.md](docs/OPT_IN.md). Capability in platform ≠ enabled for every consumer.
 4. **Version API** — breaking workflow inputs or schema → new major (`v2`). Update CHANGELOG.
 5. **Keep callables thin** — orchestration in workflows; setup in composite actions.
 6. **Escape hatch** — product-specific gates via `quality.scripts` / `build.<target>.script` / `hooks.before_build`, not new workflows per app.

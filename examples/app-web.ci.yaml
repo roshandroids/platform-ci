@@ -1,3 +1,5 @@
+# Example: web app that OPTS IN to main web build + Firebase.
+# Start from templates/ci.yaml (all builds empty); then add lists + deploy flags.
 schema: 1
 flutter: "3.38.9"
 kind: app

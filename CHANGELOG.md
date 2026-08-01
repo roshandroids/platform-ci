@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+### Changed
+
+- Defaults are **opt-in**: empty `main_builds` / `release_targets`; quality-only consumer CI template
+- Added `docs/OPT_IN.md` and `templates/consumer-ci-with-build.yml`
+
 ## 1.1.0
 
 ### Added

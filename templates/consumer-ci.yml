@@ -1,5 +1,6 @@
-# Thin consumer workflow — copy to .github/workflows/ci.yml
-# Replace OWNER/platform-ci with your fork; pin @v1 after first platform release.
+# Thin consumer workflow — quality only by default.
+# Copy to .github/workflows/ci.yml
+# Add build/deploy/release as separate workflows only when ci.yaml enables them.
 name: CI
 
 on:
@@ -13,13 +14,10 @@ concurrency:
 
 jobs:
   quality:
-    uses: OWNER/platform-ci/.github/workflows/quality.yml@v1
+    uses: roshandroids/platform-ci/.github/workflows/quality.yml@v1
     with:
       config-path: ci.yaml
 
-  build:
-    needs: quality
-    uses: OWNER/platform-ci/.github/workflows/build.yml@v1
-    with:
-      config-path: ci.yaml
-      trigger: ${{ github.event_name }}
+  # OPTIONAL — include only if pr_builds or main_builds is non-empty in ci.yaml.
+  # Empty lists → build workflow still starts a resolve job (wastes minutes).
+  # Prefer templates/consumer-ci-with-build.yml when you need builds.

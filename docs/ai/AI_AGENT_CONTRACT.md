@@ -74,6 +74,12 @@ This repository contains **no application features**. Do not add sample Flutter 
 
 ---
 
+### Rule G — Opt-in only
+
+Never enable costly lanes by default in templates. Empty build lists and `enabled: false` deploy/publish are correct defaults. Document enables in [OPT_IN.md](../OPT_IN.md). Do not add a build/deploy job to the default consumer CI template.
+
+---
+
 ## 4. Git & PR practice
 
 - Prefer feature branches; keep PRs small and reviewable

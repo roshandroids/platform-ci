@@ -2,10 +2,11 @@
 
 ## Philosophy
 
-1. PR = quality. Builds only if `pr_builds` set.
-2. Build each target **once per SHA**; deploy downloads artifacts.
-3. macOS rare — not used for v1 supported targets (web/android/cli).
-4. Policy in `ci.yaml`, not forked workflow YAML.
+1. **Opt-in** — platform offers many lanes; each repo enables only what it needs ([OPT_IN.md](OPT_IN.md)).
+2. PR = quality flags you turned on. Builds only if build lists non-empty **and** caller includes `build.yml`.
+3. Build each target **once per SHA**; deploy downloads artifacts.
+4. macOS/Windows rare — release/tag, not every PR.
+5. Policy in `ci.yaml`, not forked workflow YAML.
 
 ## Workflows
 

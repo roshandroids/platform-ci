@@ -50,5 +50,6 @@ Default caller: [`templates/consumer-ci.yml`](../templates/consumer-ci.yml) → 
 | Document_Platform | quality | web (+ demos on main optional) |
 | celpip | quality | web + firebase on tag/main deploy policy |
 | agentic template | quality | web |
+| MBO | quality (+ corpus/demo scripts) | human `workflow_dispatch` release (keep); demos Pages on main |
 
 See [COMPATIBILITY.md](COMPATIBILITY.md) · [examples/](../examples/).

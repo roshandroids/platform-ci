@@ -1,0 +1,50 @@
+# Example ci.yaml — agentic_flutter_template (Melos; web on main; mobile verify rare)
+schema: 1
+flutter: "3.38.9"
+kind: melos
+paths:
+  - .
+
+quality:
+  format: true
+  analyze: true
+  test: true
+  golden: true
+  coverage: true
+  coverage_threshold: 90
+  enforce_coverage: false
+  scripts:
+    - ./scripts/check_dependency_boundaries.sh
+    # - ./scripts/check_coverage.sh
+
+pr_builds: []
+main_builds:
+  - web
+release_targets:
+  - web
+  - android
+  # ios: tag-only when ready (macOS minutes)
+  # - ios
+
+build:
+  android:
+    args:
+      - apk
+  web:
+    args:
+      - "--release"
+
+deploy:
+  pages:
+    enabled: true
+    on:
+      - main
+    source: web
+
+publish:
+  pub:
+    enabled: false
+    dry_run_on_pr: true
+
+hooks:
+  local: true

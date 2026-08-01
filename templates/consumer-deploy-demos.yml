@@ -1,0 +1,23 @@
+# Consumer: Document_Platform-style demos → GitHub Pages
+name: Deploy demos
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: demos-${{ github.repository }}
+  cancel-in-progress: true
+
+jobs:
+  demos:
+    uses: roshandroids/platform-ci/.github/workflows/deploy-web-demos.yml@v1
+    with:
+      config-path: ci.yaml
+      site-title: Demos

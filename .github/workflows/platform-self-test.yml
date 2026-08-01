@@ -21,6 +21,9 @@ jobs:
           - examples/app-web.ci.yaml
           - examples/dart-package.ci.yaml
           - examples/melos.ci.yaml
+          - examples/document-platform.ci.yaml
+          - examples/ai-tray.ci.yaml
+          - examples/agentic-flutter-template.ci.yaml
           - templates/ci.yaml
     steps:
       - uses: actions/checkout@v4
@@ -51,10 +54,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in quality build release deploy-firebase deploy-pages publish-pub maintenance; do
+          for f in quality build release deploy-firebase deploy-pages deploy-web-demos publish-pub maintenance; do
             test -f ".github/workflows/${f}.yml"
           done
-          for a in read-config flutter-setup melos-bootstrap github-release checkout-platform; do
+          for a in read-config flutter-setup melos-bootstrap github-release checkout-platform node-setup; do
             test -f ".github/actions/${a}/action.yml"
           done
           test -x scripts/validate-local.sh || chmod +x scripts/validate-local.sh

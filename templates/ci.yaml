@@ -1,25 +1,27 @@
 schema: 1
 
-# Pin Flutter for apps; packages may use a channel name (e.g. stable).
 flutter: "3.38.9"
 kind: app
 
 paths:
   - .
 
+node:
+  enabled: false
+  version: "22"
+
 quality:
   format: true
   analyze: true
   test: true
   coverage: false
+  golden: false
+  integration: false
+  scripts: []
 
-# Empty = quality only on PRs (saves minutes).
 pr_builds: []
-
-# Build web on main for deploy pipelines.
 main_builds:
   - web
-
 release_targets:
   - web
 
@@ -27,6 +29,10 @@ build:
   web:
     args:
       - "--release"
+  macos:
+    package: zip
+  windows:
+    package: zip
 
 deploy:
   firebase:
@@ -40,6 +46,10 @@ deploy:
     on:
       - main
     source: web
+  demos:
+    enabled: false
+    manifest: showcase/demos.json
+    base_href_prefix: /
 
 publish:
   pub:
@@ -49,3 +59,4 @@ publish:
 
 hooks:
   local: true
+  before_build: ""

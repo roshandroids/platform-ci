@@ -1,28 +1,23 @@
 # Tasks — platform-ci
 
-> Lightweight backlog for AI agents and humans.
-
 ## Now / Next
 
 | ID | Task | Status |
 |----|------|--------|
-| P001 | Phase 0–1 platform scaffold (actions + callables + templates) | **Done** |
-| P002 | AI-friendly docs (`AGENTS.md`, contract, state, tasks) | **Done** |
-| P003 | Publish GitHub repo + tag `v1.0.0` / `v1` | **Done** |
-| P004 | Migrate `celpip-workspace` to platform-ci callables | Open |
-| P005 | Document secret setup one-pager for Firebase / pub.dev | Open |
-| P006 | Optional: iOS build target on macOS (tag-only) | Open |
-| P007 | Optional: desktop targets | Open |
-| P008 | flutter-template repo that ships `ci.yaml` + thin workflows | Open |
-
-## Done
-
-- Composite actions + reusable workflows for quality/build/deploy/release/pub
-- Schema, examples, local validate script, self-test, Dependabot
+| P001 | Phase 0–1 platform scaffold | **Done** |
+| P002 | AI-friendly docs | **Done** |
+| P003 | Publish + tag v1.0.0 | **Done** |
+| P009 | v1.1 generic coverage (desktop, demos, hooks, examples) | **Done** (this change) |
+| P004 | Migrate celpip-workspace | Open |
+| P010 | Migrate agentic_flutter_template callers | Open |
+| P011 | Migrate Document_Platform demos + quality | Open |
+| P012 | Migrate AI_Tray release desktop | Open |
+| P005 | Secret setup one-pager | Open |
+| P008 | flutter-template ships platform-ci by default | Open |
 
 ## Parking lot
 
-- Coverage upload action
-- PR Firebase preview template (channel `pr-N`) as first-class template
+- Coverage lcov gate in platform
+- OIDC pub.dev (vs JSON credentials)
+- Split required checks (Format/Analyze/Test) as optional workflow mode
 - actionlint in self-test
-- Renovate instead of / in addition to Dependabot

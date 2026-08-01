@@ -1,0 +1,36 @@
+# Example ci.yaml — AI_Tray (desktop tray; quality on ubuntu; desktop only on tag)
+schema: 1
+flutter: "3.38.9"
+kind: app
+paths:
+  - ai_tray
+
+node:
+  enabled: true
+  version: "22"
+
+quality:
+  format: true
+  analyze: true
+  test: true
+  scripts:
+    # optional: - ./scripts/ci/check.sh
+
+# Never put macos/windows on PR — minute burn (see AI Tray history).
+pr_builds: []
+main_builds: []
+release_targets:
+  - macos
+  - windows
+
+build:
+  macos:
+    package: zip
+    # Prefer consumer scripts when sidecar packaging is custom:
+    # script: ./scripts/ci/build.sh macos && ./scripts/ci/package.sh macos
+  windows:
+    package: zip
+
+hooks:
+  before_build: ./scripts/ci/bridge.sh --assemble
+  local: true

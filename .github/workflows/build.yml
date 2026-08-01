@@ -1,12 +1,11 @@
 name: Build
 
-# Callable: build targets from ci.yaml; upload artifacts (build once).
-# trigger: pull_request → pr_builds | push/workflow_dispatch → main_builds | release → release_targets
+# Callable: build targets from ci.yaml; upload build-<target>-<sha> (build once).
+# Supports web/android/ios/macos/windows/linux/cli + optional custom scripts / zip package.
 on:
   workflow_call:
     inputs:
       config-path:
-        description: Path to ci.yaml
         type: string
         required: false
         default: ci.yaml
@@ -15,7 +14,6 @@ on:
         type: string
         required: true
       sha:
-        description: Artifact name suffix (default github.sha)
         type: string
         required: false
         default: ""
@@ -29,9 +27,10 @@ jobs:
       targets_json: ${{ steps.pick.outputs.targets_json }}
       flutter: ${{ steps.cfg.outputs.flutter }}
       primary_path: ${{ steps.cfg.outputs.primary_path }}
-      kind: ${{ steps.cfg.outputs.kind }}
-      web_args_json: ${{ steps.cfg.outputs.web_args_json }}
-      android_args_json: ${{ steps.cfg.outputs.android_args_json }}
+      build_config_json: ${{ steps.cfg.outputs.build_config_json }}
+      before_build: ${{ steps.cfg.outputs.before_build }}
+      node_enabled: ${{ steps.cfg.outputs.node_enabled }}
+      node_version: ${{ steps.cfg.outputs.node_version }}
       artifact_sha: ${{ steps.pick.outputs.artifact_sha }}
       has_targets: ${{ steps.pick.outputs.has_targets }}
     steps:
@@ -106,7 +105,7 @@ jobs:
     needs: resolve
     if: needs.resolve.outputs.has_targets == 'true'
     runs-on: ${{ matrix.target == 'ios' && 'macos-latest' || matrix.target == 'macos' && 'macos-latest' || matrix.target == 'windows' && 'windows-latest' || 'ubuntu-latest' }}
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -139,69 +138,144 @@ jobs:
             .github/actions
           sparse-checkout-cone-mode: true
 
+      - name: Node setup
+        if: needs.resolve.outputs.node_enabled == 'true'
+        uses: ./_platform_ci/.github/actions/node-setup
+        with:
+          node-version: ${{ needs.resolve.outputs.node_version }}
+          working-directory: ${{ needs.resolve.outputs.primary_path }}
+
       - name: Flutter setup
         uses: ./_platform_ci/.github/actions/flutter-setup
         with:
           flutter-version: ${{ needs.resolve.outputs.flutter }}
           working-directory: ${{ needs.resolve.outputs.primary_path }}
 
-      - name: Build web
-        if: matrix.target == 'web'
+      - name: Before build hook
+        if: needs.resolve.outputs.before_build != ''
         shell: bash
-        working-directory: ${{ needs.resolve.outputs.primary_path }}
         env:
-          WEB_ARGS_JSON: ${{ needs.resolve.outputs.web_args_json }}
+          CMD: ${{ needs.resolve.outputs.before_build }}
         run: |
           set -euo pipefail
-          # shellcheck disable=SC2046
-          flutter build web $(echo "$WEB_ARGS_JSON" | jq -r '.[]')
-          mkdir -p "${GITHUB_WORKSPACE}/dist/web"
-          cp -R build/web/. "${GITHUB_WORKSPACE}/dist/web/"
+          echo "--> $CMD"
+          bash -lc "$CMD"
 
-      - name: Build android
-        if: matrix.target == 'android'
+      - name: Build target
         shell: bash
-        working-directory: ${{ needs.resolve.outputs.primary_path }}
         env:
-          ANDROID_ARGS_JSON: ${{ needs.resolve.outputs.android_args_json }}
+          TARGET: ${{ matrix.target }}
+          PRIMARY: ${{ needs.resolve.outputs.primary_path }}
+          BUILD_CONFIG_JSON: ${{ needs.resolve.outputs.build_config_json }}
         run: |
           set -euo pipefail
-          args="$(echo "$ANDROID_ARGS_JSON" | jq -r '.[]' | tr '\n' ' ')"
-          # Default appbundle; allow apk via ci.yaml build.android.args
-          # shellcheck disable=SC2086
-          flutter build $args
-          mkdir -p "${GITHUB_WORKSPACE}/dist/android"
-          if [[ -d build/app/outputs ]]; then
-            cp -R build/app/outputs/. "${GITHUB_WORKSPACE}/dist/android/"
+          cfg="$(echo "$BUILD_CONFIG_JSON" | jq -c --arg t "$TARGET" '.[$t]')"
+          script="$(echo "$cfg" | jq -r '.script // ""')"
+          package="$(echo "$cfg" | jq -r '.package // "none"')"
+          args_json="$(echo "$cfg" | jq -c '.args // []')"
+          out="${GITHUB_WORKSPACE}/dist/${TARGET}"
+          mkdir -p "$out"
+
+          if [[ -n "$script" ]]; then
+            echo "Custom build script: $script"
+            bash -lc "$script"
+            if [[ -z "$(ls -A "$out" 2>/dev/null || true)" ]]; then
+              echo "::error::Custom script must populate dist/${TARGET}/"
+              exit 1
+            fi
+            exit 0
           fi
 
-      - name: Build cli
-        if: matrix.target == 'cli'
-        shell: bash
-        working-directory: ${{ needs.resolve.outputs.primary_path }}
-        run: |
-          set -euo pipefail
-          mkdir -p "${GITHUB_WORKSPACE}/dist/cli"
-          # Compile first bin-like entry if present; else dart compile exe on bin/*.dart
-          if compgen -G "bin/*.dart" > /dev/null; then
-            for entry in bin/*.dart; do
-              name="$(basename "$entry" .dart)"
-              dart compile exe "$entry" -o "${GITHUB_WORKSPACE}/dist/cli/${name}"
-            done
-          else
-            echo "::error::cli target requires bin/*.dart"
-            exit 1
-          fi
+          cd "$PRIMARY"
 
-      - name: Unsupported target (v1)
-        if: matrix.target == 'ios' || matrix.target == 'macos' || matrix.target == 'linux' || matrix.target == 'windows'
-        shell: bash
-        run: |
-          echo "::error::Target '${{ matrix.target }}' not implemented in platform-ci v1. Use web, android, or cli."
-          exit 1
+          case "$TARGET" in
+            web)
+              # shellcheck disable=SC2046
+              flutter build web $(echo "$args_json" | jq -r '.[]')
+              cp -R build/web/. "$out/"
+              ;;
+            android)
+              # shellcheck disable=SC2046
+              flutter build $(echo "$args_json" | jq -r '.[]')
+              if [[ -d build/app/outputs ]]; then
+                cp -R build/app/outputs/. "$out/"
+              fi
+              ;;
+            ios)
+              # shellcheck disable=SC2046
+              flutter build ios $(echo "$args_json" | jq -r '.[]')
+              mkdir -p "$out"
+              echo "ios-build-ok" > "$out/BUILD_OK"
+              if [[ -d build/ios ]]; then
+                # Keep lightweight marker; full IPA needs signing (consumer script)
+                find build/ios -name '*.app' -maxdepth 5 2>/dev/null | head -5 > "$out/app_paths.txt" || true
+              fi
+              ;;
+            macos)
+              # shellcheck disable=SC2046
+              flutter build macos $(echo "$args_json" | jq -r '.[]')
+              app="$(find build/macos -name '*.app' -type d | head -1 || true)"
+              if [[ -z "$app" ]]; then
+                echo "::error::No .app found under build/macos"
+                exit 1
+              fi
+              if [[ "$package" == "zip" ]]; then
+                name="$(basename "$app" .app)"
+                ditto -c -k --sequesterRsrc --keepParent "$app" "$out/${name}-macOS.zip"
+              else
+                cp -R "$app" "$out/"
+              fi
+              ;;
+            windows)
+              # shellcheck disable=SC2046
+              flutter build windows $(echo "$args_json" | jq -r '.[]')
+              release_dir="build/windows/x64/runner/Release"
+              if [[ ! -d "$release_dir" ]]; then
+                echo "::error::Missing $release_dir"
+                exit 1
+              fi
+              if [[ "$package" == "zip" ]]; then
+                if command -v powershell >/dev/null 2>&1; then
+                  powershell -Command "Compress-Archive -Path '$release_dir\\*' -DestinationPath '$out\\app-windows-x64.zip' -Force"
+                else
+                  (cd "$release_dir" && zip -r "$out/app-windows-x64.zip" .)
+                fi
+              else
+                cp -R "$release_dir/." "$out/"
+              fi
+              ;;
+            linux)
+              # shellcheck disable=SC2046
+              flutter build linux $(echo "$args_json" | jq -r '.[]')
+              bundle="$(find build/linux -type d -name bundle | head -1 || true)"
+              if [[ -z "$bundle" ]]; then
+                echo "::error::No linux bundle found"
+                exit 1
+              fi
+              if [[ "$package" == "zip" ]]; then
+                (cd "$bundle" && zip -r "$out/app-linux.zip" .)
+              else
+                cp -R "$bundle/." "$out/"
+              fi
+              ;;
+            cli)
+              if compgen -G "bin/*.dart" > /dev/null; then
+                for entry in bin/*.dart; do
+                  name="$(basename "$entry" .dart)"
+                  dart compile exe "$entry" -o "$out/${name}"
+                done
+              else
+                echo "::error::cli target requires bin/*.dart or build.cli.script"
+                exit 1
+              fi
+              ;;
+            *)
+              echo "::error::Unknown target $TARGET"
+              exit 1
+              ;;
+          esac
 
       - name: Upload artifact
-        if: matrix.target == 'web' || matrix.target == 'android' || matrix.target == 'cli'
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.target }}-${{ needs.resolve.outputs.artifact_sha }}

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/platform-ci/schema/ci.schema.json",
+  "$id": "https://github.com/roshandroids/platform-ci/schema/ci.schema.json",
   "title": "platform-ci configuration",
   "type": "object",
   "required": ["schema", "flutter", "kind", "paths"],
@@ -13,7 +13,6 @@
     },
     "flutter": {
       "type": "string",
-      "description": "Flutter SDK version pin (e.g. 3.38.9) or channel name",
       "minLength": 1
     },
     "kind": {
@@ -23,8 +22,16 @@
     "paths": {
       "type": "array",
       "minItems": 1,
-      "items": { "type": "string", "minLength": 1 },
-      "description": "Package roots relative to repo root"
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional Node for sidecars (e.g. AI Tray bridge)",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "version": { "type": "string", "default": "22" }
+      }
     },
     "quality": {
       "type": "object",
@@ -34,50 +41,66 @@
         "analyze": { "type": "boolean", "default": true },
         "test": { "type": "boolean", "default": true },
         "coverage": { "type": "boolean", "default": false },
-        "melos_filter": { "type": "string", "default": "" }
+        "coverage_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Informational unless enforce_coverage true"
+        },
+        "enforce_coverage": { "type": "boolean", "default": false },
+        "golden": { "type": "boolean", "default": false },
+        "exclude_golden_from_test": {
+          "type": "boolean",
+          "default": true,
+          "description": "When golden true, main test uses --exclude-tags=golden"
+        },
+        "integration": { "type": "boolean", "default": false },
+        "melos_filter": { "type": "string", "default": "" },
+        "scripts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Extra repo-root shell commands after standard quality (changelog, boundaries, etc.)"
+        }
       }
     },
     "pr_builds": {
       "type": "array",
-      "items": { "type": "string", "enum": ["web", "android", "ios", "linux", "macos", "windows", "cli"] },
-      "default": [],
-      "description": "Build targets on pull_request. Empty = quality only."
+      "items": { "$ref": "#/$defs/target" },
+      "default": []
     },
     "main_builds": {
       "type": "array",
-      "items": { "type": "string", "enum": ["web", "android", "ios", "linux", "macos", "windows", "cli"] },
+      "items": { "$ref": "#/$defs/target" },
       "default": []
     },
     "release_targets": {
       "type": "array",
-      "items": { "type": "string", "enum": ["web", "android", "ios", "linux", "macos", "windows", "cli"] },
+      "items": { "$ref": "#/$defs/target" },
       "default": []
     },
     "build": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "web": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "args": {
-              "type": "array",
-              "items": { "type": "string" },
-              "default": ["--release"]
-            }
-          }
-        },
-        "android": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "args": {
-              "type": "array",
-              "items": { "type": "string" },
-              "default": ["appbundle"]
-            }
-          }
+        "web": { "$ref": "#/$defs/buildTarget" },
+        "android": { "$ref": "#/$defs/buildTarget" },
+        "ios": { "$ref": "#/$defs/buildTarget" },
+        "macos": { "$ref": "#/$defs/buildTarget" },
+        "windows": { "$ref": "#/$defs/buildTarget" },
+        "linux": { "$ref": "#/$defs/buildTarget" },
+        "cli": { "$ref": "#/$defs/buildTarget" }
+      }
+    },
+    "hooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "local": { "type": "boolean", "default": true },
+        "before_build": {
+          "type": "string",
+          "default": "",
+          "description": "Shell command at repo root before each build target (sidecar assemble, etc.)"
         }
       }
     },
@@ -111,6 +134,16 @@
             },
             "source": { "type": "string", "default": "web" }
           }
+        },
+        "demos": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Multi-demo Flutter web site (Document_Platform pattern)",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "manifest": { "type": "string", "default": "showcase/demos.json" },
+            "base_href_prefix": { "type": "string", "default": "/" }
+          }
         }
       }
     },
@@ -128,12 +161,32 @@
           }
         }
       }
+    }
+  },
+  "$defs": {
+    "target": {
+      "type": "string",
+      "enum": ["web", "android", "ios", "linux", "macos", "windows", "cli"]
     },
-    "hooks": {
+    "buildTarget": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "local": { "type": "boolean", "default": true }
+        "args": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "script": {
+          "type": "string",
+          "default": "",
+          "description": "If set, run this instead of default flutter build; must populate dist/<target>/"
+        },
+        "package": {
+          "type": "string",
+          "enum": ["none", "zip"],
+          "default": "none",
+          "description": "zip = compress default build output into dist/<target>/"
+        }
       }
     }
   }

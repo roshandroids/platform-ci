@@ -38,8 +38,17 @@ Reusable workflows checkout this repo via `github.workflow_ref` into `_platform_
 |--------|--------|--------|
 | web | ubuntu | supported |
 | android | ubuntu | supported |
-| cli | ubuntu | supported (`bin/*.dart`) |
-| ios / macos / windows / linux | — | explicit fail (extend later) |
+| cli | ubuntu | supported (`bin/*.dart` or script) |
+| ios | macos | `--no-codesign` marker / prefer `script` for IPA |
+| macos | macos | supported + optional zip |
+| windows | windows | supported + optional zip |
+| linux | ubuntu | supported + optional zip |
+
+Custom: `build.<target>.script` must populate `dist/<target>/`.  
+Node: `node.enabled` + `hooks.before_build`.  
+Demos: `deploy-web-demos.yml`.
+
+See [COMPATIBILITY.md](COMPATIBILITY.md).
 
 ## Consumer wiring
 

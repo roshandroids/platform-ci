@@ -1,0 +1,42 @@
+# Example ci.yaml — Document_Platform (Melos monorepo + demos Pages + Firebase on tag)
+schema: 1
+flutter: "3.38.9"
+kind: melos
+paths:
+  - .
+
+quality:
+  format: true
+  analyze: true
+  test: true
+  golden: true
+  integration: true
+  coverage: true
+  coverage_threshold: 90
+  enforce_coverage: false
+  scripts:
+    - ./scripts/check_changelog_entries.sh
+    # add boundary scripts as needed:
+    # - ./scripts/check_flutter_free_core.sh
+
+pr_builds: []
+main_builds:
+  - web
+release_targets:
+  - web
+
+deploy:
+  demos:
+    enabled: true
+    manifest: showcase/demos.json
+    base_href_prefix: /Document_Platform
+  firebase:
+    enabled: true
+    project_id: document-platform-21fcf
+    on:
+      - tag
+  pages:
+    enabled: false
+
+hooks:
+  local: true

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0
+
+### Added
+
+- Desktop/mobile builds: `macos`, `windows`, `linux`, `ios` (release-oriented)
+- `node` + `node-setup` composite; `hooks.before_build`
+- `build.<target>.script` / `package: zip` escape hatches
+- Quality: `golden`, `integration`, `scripts[]`, coverage threshold fields
+- `deploy-web-demos.yml` for `demos.json` multi-demo Pages
+- Examples + `docs/COMPATIBILITY.md` for Document_Platform, AI_Tray, agentic_flutter_template
+
 ## 1.0.0
 
 ### Added

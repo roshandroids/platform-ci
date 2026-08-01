@@ -4,37 +4,29 @@
 
 **Last updated:** 2026-08-01  
 **Default branch:** `main`  
-**Version:** `v1.0.0` / floating `@v1`  
+**Version:** `v1.1.0` intent / floating `@v1`  
 **Remote:** https://github.com/roshandroids/platform-ci
 
 ---
 
 ## Purpose
 
-Central reusable GitHub Actions platform for Flutter/Dart consumers (apps, packages, Melos monorepos, CLI, Firebase Hosting, GitHub Pages, pub.dev).
+Central reusable GitHub Actions platform for Flutter/Dart consumers across RSProjects: celpip, Document_Platform, AI_Tray, agentic_flutter_template, packages, CLI.
 
 ---
 
-## Shipped (v1.0.0)
+## Shipped
 
 | Area | Status |
 |------|--------|
-| `read-config` | Shipped |
-| `flutter-setup` | Shipped |
-| `melos-bootstrap` | Shipped |
-| `github-release` | Shipped |
-| `quality` workflow | Shipped |
-| `build` workflow (`web`, `android`, `cli`) | Shipped |
-| `release` workflow | Shipped |
-| `deploy-firebase` | Shipped |
-| `deploy-pages` | Shipped |
-| `publish-pub` | Shipped |
-| `maintenance` | Shipped |
-| `platform-self-test` | Shipped |
-| `ci.yaml` schema + templates + examples | Shipped |
-| `scripts/validate-local.sh` | Shipped |
-| AI docs (`AGENTS.md`, `docs/ai/*`) | Shipped |
-| GitHub publish + tags `v1` / `v1.0.0` | Shipped |
+| quality (+ golden/integration/scripts) | Shipped (v1.1) |
+| build web/android/cli | Shipped (v1.0) |
+| build ios/macos/windows/linux + zip/script | Shipped (v1.1) |
+| node-setup + before_build | Shipped (v1.1) |
+| deploy-firebase / pages / web-demos | Shipped |
+| release / publish-pub / maintenance | Shipped |
+| COMPATIBILITY + consumer examples | Shipped (v1.1) |
+| AI docs | Shipped |
 
 ---
 
@@ -42,27 +34,26 @@ Central reusable GitHub Actions platform for Flutter/Dart consumers (apps, packa
 
 | Item | Notes |
 |------|-------|
-| iOS / macOS / Windows / Linux desktop builds | Fail fast in `build.yml` with clear error |
-| Store publish (Play / App Store) | Out of scope |
-| Melos affected-graph | Out of scope until needed |
-| Coverage % gate | Default off |
-| Self-hosted runners | Not justified |
+| Codesign / notarization / DMG / MSIX | Consumer scripts |
+| Coverage % enforcement in platform | Use `quality.scripts` |
+| Melos version bump automation | Consumer / template |
+| Store publish | Out of scope |
 
 ---
 
 ## Consumers
 
-None wired yet. Intended first consumer: `celpip-workspace` (migrate later).
-
-Use: `roshandroids/platform-ci/.github/workflows/*.yml@v1`
-
-Note: legacy `master` branch may still exist from an earlier Phase 0 scaffold (`ci/project.yaml`). Prefer `main` + `@v1`.
+| Repo | Status |
+|------|--------|
+| celpip-workspace | Not wired yet |
+| Document_Platform | Example ready; migrate demos/quality next |
+| AI_Tray | Example ready; desktop via release_targets |
+| agentic_flutter_template | Example ready; should become template default |
 
 ---
 
 ## Operational notes
 
-- Reusable workflows resolve this repo via `github.workflow_ref` into `_platform_ci/`
-- Artifact contract: `build-<target>-<sha>`
-- Dependabot: github-actions weekly
-- Push workflows require SSH (`roshandroids.github.com`) or a token with `workflow` scope
+- Artifact: `build-<target>-<sha>`
+- Pin `@v1`; tag `v1.1.0` after this ship
+- Push workflows via SSH `roshandroids.github.com` (HTTPS token needs `workflow` scope)

@@ -27,20 +27,21 @@ Product policy lives in the **consumer** `ci.yaml`. This repo owns workflows + c
 
 1. **Build once** — deploy/release must download artifacts; never re-run `flutter build` in deploy jobs.
 2. **Config over forks** — extend `ci.yaml` / schema; do not tell consumers to copy-paste huge workflows.
-3. **Minute thrift** — default `pr_builds: []`; no macOS for analyze/test; no nightly full matrices.
+3. **Minute thrift** — default `pr_builds: []`; no macOS/Windows on PR by default; desktop = release/tag.
 4. **Version API** — breaking workflow inputs or schema → new major (`v2`). Update CHANGELOG.
 5. **Keep callables thin** — orchestration in workflows; setup in composite actions.
-6. **No enterprise sprawl** — no self-hosted runners, no required coverage %, no fancy affected-graph until real pain.
+6. **Escape hatch** — product-specific gates via `quality.scripts` / `build.<target>.script` / `hooks.before_build`, not new workflows per app.
+7. **No enterprise sprawl** — no self-hosted runners, no required coverage % in platform core.
 
 ## Where to change what
 
 | Goal | Touch |
 |------|--------|
-| New `ci.yaml` field | `schema/ci.schema.json` + `read-config` + examples + PLATFORM.md |
-| New quality step | `.github/workflows/quality.yml` (+ local `scripts/validate-local.sh`) |
-| New build target | `.github/workflows/build.yml` + schema enum + examples |
+| New `ci.yaml` field | `schema/ci.schema.json` + `read-config` + examples + COMPATIBILITY/PLATFORM |
+| New quality step | `.github/workflows/quality.yml` (+ local `scripts/validate-local.sh` if shared) |
+| New build target behavior | `.github/workflows/build.yml` + schema |
 | New deploy sink | new `workflow_call` YAML + consumer template |
-| Consumer onboarding | `templates/*` + README |
+| Consumer mapping | `docs/COMPATIBILITY.md` + `examples/*` |
 
 ## Do not
 

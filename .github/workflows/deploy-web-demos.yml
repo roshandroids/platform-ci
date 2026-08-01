@@ -1,0 +1,213 @@
+name: Deploy web demos
+
+# Callable: build multi-demo Flutter web site from demos.json → Pages artifact.
+# Contract: { "demos": [ { "id", "examplePath", "featured?": bool } ] }
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        type: string
+        required: false
+        default: ci.yaml
+      demos-manifest:
+        type: string
+        required: false
+        default: ""
+      base-href-prefix:
+        type: string
+        required: false
+        default: ""
+      site-title:
+        type: string
+        required: false
+        default: Demos
+      run-analyze:
+        type: boolean
+        required: false
+        default: false
+    outputs:
+      demo_ids:
+        description: JSON array of built demo ids
+        value: ${{ jobs.build.outputs.demo_ids }}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build demo site
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      demo_ids: ${{ steps.manifest.outputs.demo_ids }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve platform-ci ref
+        id: platform
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          set -euo pipefail
+          without_ref="${WORKFLOW_REF%%@*}"
+          ref="${WORKFLOW_REF#*@}"
+          owner="$(echo "$without_ref" | cut -d/ -f1)"
+          name="$(echo "$without_ref" | cut -d/ -f2)"
+          echo "repository=${owner}/${name}" >> "$GITHUB_OUTPUT"
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout platform-ci actions
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.platform.outputs.repository }}
+          ref: ${{ steps.platform.outputs.ref }}
+          path: _platform_ci
+          sparse-checkout: |
+            .github/actions
+          sparse-checkout-cone-mode: true
+
+      - name: Read config
+        id: cfg
+        uses: ./_platform_ci/.github/actions/read-config
+        with:
+          config-path: ${{ inputs.config-path }}
+
+      - name: Resolve demos settings
+        id: settings
+        shell: bash
+        env:
+          INPUT_MANIFEST: ${{ inputs.demos-manifest }}
+          INPUT_PREFIX: ${{ inputs.base-href-prefix }}
+          CFG_ENABLED: ${{ steps.cfg.outputs.demos_enabled }}
+          CFG_MANIFEST: ${{ steps.cfg.outputs.demos_manifest }}
+          CFG_PREFIX: ${{ steps.cfg.outputs.demos_base_href_prefix }}
+        run: |
+          set -euo pipefail
+          if [[ "$CFG_ENABLED" != "true" && -z "$INPUT_MANIFEST" ]]; then
+            echo "::error::deploy.demos.enabled must be true in ci.yaml (or pass demos-manifest)"
+            exit 1
+          fi
+          manifest="${INPUT_MANIFEST:-$CFG_MANIFEST}"
+          prefix="${INPUT_PREFIX:-$CFG_PREFIX}"
+          [[ "$prefix" == "/" ]] && prefix=""
+          echo "manifest=$manifest" >> "$GITHUB_OUTPUT"
+          echo "base_prefix=$prefix" >> "$GITHUB_OUTPUT"
+
+      - name: Flutter setup
+        uses: ./_platform_ci/.github/actions/flutter-setup
+        with:
+          flutter-version: ${{ steps.cfg.outputs.flutter }}
+          working-directory: ${{ steps.cfg.outputs.primary_path }}
+          pub-get: ${{ steps.cfg.outputs.kind == 'melos' && 'false' || 'true' }}
+
+      - name: Melos bootstrap
+        if: steps.cfg.outputs.kind == 'melos'
+        uses: ./_platform_ci/.github/actions/melos-bootstrap
+
+      - name: Workspace pub get
+        if: steps.cfg.outputs.kind != 'melos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f pubspec.yaml ]]; then
+            dart pub get
+          fi
+
+      - name: Analyze
+        if: inputs.run-analyze
+        shell: bash
+        run: dart analyze --fatal-infos
+
+      - name: Parse demos manifest
+        id: manifest
+        shell: bash
+        env:
+          MANIFEST: ${{ steps.settings.outputs.manifest }}
+          BASE_PREFIX: ${{ steps.settings.outputs.base_prefix }}
+        run: |
+          set -euo pipefail
+          if [[ ! -f "$MANIFEST" ]]; then
+            echo "::error::Demos manifest not found: $MANIFEST"
+            exit 1
+          fi
+          DEMO_IDS=$(jq -c '[.demos[].id]' "$MANIFEST")
+          DEMO_ROWS=$(jq -c '[.demos[] | {id: .id, examplePath: .examplePath, featured: (.featured // false)}]' "$MANIFEST")
+          FEATURED=$(jq -r '([.demos[] | select(.featured == true)] | first | .id) // (.demos[0].id)' "$MANIFEST")
+          echo "demo_ids=$DEMO_IDS" >> "$GITHUB_OUTPUT"
+          echo "demo_rows=$DEMO_ROWS" >> "$GITHUB_OUTPUT"
+          echo "featured_id=$FEATURED" >> "$GITHUB_OUTPUT"
+
+      - name: Build Flutter web demos
+        shell: bash
+        env:
+          DEMO_ROWS: ${{ steps.manifest.outputs.demo_rows }}
+          BASE_PREFIX: ${{ steps.settings.outputs.base_prefix }}
+        run: |
+          set -euo pipefail
+          mkdir -p site
+          echo "$DEMO_ROWS" | jq -c '.[]' | while read -r row; do
+            id=$(echo "$row" | jq -r '.id')
+            path=$(echo "$row" | jq -r '.examplePath')
+            if [[ ! -d "$path" ]]; then
+              echo "::error::examplePath missing for $id: $path"
+              exit 1
+            fi
+            if [[ -n "$BASE_PREFIX" ]]; then
+              href="${BASE_PREFIX}/${id}/"
+            else
+              href="/${id}/"
+            fi
+            echo "==> Building $id from $path (base-href=$href)"
+            (cd "$path" && flutter pub get && flutter build web --release --base-href "$href")
+            mkdir -p "site/$id"
+            cp -R "$path/build/web/." "site/$id/"
+          done
+
+      - name: Write site index
+        shell: bash
+        env:
+          FEATURED_ID: ${{ steps.manifest.outputs.featured_id }}
+          BASE_PREFIX: ${{ steps.settings.outputs.base_prefix }}
+          DEMO_ROWS: ${{ steps.manifest.outputs.demo_rows }}
+          SITE_TITLE: ${{ inputs.site-title }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$BASE_PREFIX" ]]; then
+            featured_href="${BASE_PREFIX}/${FEATURED_ID}/"
+          else
+            featured_href="/${FEATURED_ID}/"
+          fi
+          {
+            echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+            echo "<title>${SITE_TITLE}</title>"
+            echo "<meta http-equiv=\"refresh\" content=\"0; url=${featured_href}\">"
+            echo '</head><body>'
+            echo "<h1>${SITE_TITLE}</h1><ul>"
+            echo "$DEMO_ROWS" | jq -r --arg prefix "$BASE_PREFIX" '
+              .[] |
+              (if $prefix == "" then "/" + .id + "/" else $prefix + "/" + .id + "/" end) as $href |
+              "<li><a href=\"\($href)\">\(.id)</a></li>"
+            '
+            echo '</ul></body></html>'
+          } > site/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

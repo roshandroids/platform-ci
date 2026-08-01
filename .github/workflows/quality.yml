@@ -100,10 +100,11 @@ jobs:
             test_args+=(--exclude-tags=golden)
           fi
           if [[ "$KIND" == "melos" ]]; then
+            # Skip packages without test/ (e.g. tooling packages).
             if [[ -n "$MELOS_FILTER" ]]; then
-              melos exec --scope="$MELOS_FILTER" -- flutter test "${test_args[@]}"
+              melos exec --dir-exists=test --scope="$MELOS_FILTER" -- flutter test "${test_args[@]}"
             else
-              melos exec -- flutter test "${test_args[@]}"
+              melos exec --dir-exists=test -- flutter test "${test_args[@]}"
             fi
           else
             echo "$PATHS_JSON" | jq -r '.[]' | while read -r p; do
@@ -122,9 +123,9 @@ jobs:
           set -euo pipefail
           if [[ "$KIND" == "melos" ]]; then
             if [[ -n "$MELOS_FILTER" ]]; then
-              melos exec --scope="$MELOS_FILTER" -- flutter test --tags=golden
+              melos exec --dir-exists=test --scope="$MELOS_FILTER" -- flutter test --tags=golden
             else
-              melos exec -- flutter test --tags=golden
+              melos exec --dir-exists=test -- flutter test --tags=golden
             fi
           else
             echo "$PATHS_JSON" | jq -r '.[]' | while read -r p; do

@@ -22,8 +22,9 @@ on:
         type: string
         required: false
         default: ""
-    permissions:
-      contents: write
+
+permissions:
+  contents: write
 
 jobs:
   release:

@@ -188,7 +188,19 @@ jobs:
               fi
               if [[ "$package" == "zip" ]]; then
                 if command -v powershell >/dev/null 2>&1; then
-                  powershell -Command "Compress-Archive -Path '$release_dir\\*' -DestinationPath '$out\\app-windows-x64.zip' -Force"
+                  # Git Bash can auto-convert a POSIX-looking path embedded in
+                  # this quoted -Command string into a mangled one (e.g. an
+                  # extra drive-letter segment). Resolve to native Windows
+                  # form with cygpath and disable that conversion so the
+                  # already-correct path passes through untouched.
+                  release_dir_win="$release_dir"
+                  zip_win="$out/app-windows-x64.zip"
+                  if command -v cygpath >/dev/null 2>&1; then
+                    release_dir_win="$(cygpath -w "$release_dir")"
+                    zip_win="$(cygpath -w "$out/app-windows-x64.zip")"
+                  fi
+                  MSYS_NO_PATHCONV=1 powershell -Command \
+                    "Compress-Archive -Path '${release_dir_win}\\*' -DestinationPath '${zip_win}' -Force"
                 else
                   (cd "$release_dir" && zip -r "$out/app-windows-x64.zip" .)
                 fi

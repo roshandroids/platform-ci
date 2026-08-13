@@ -44,7 +44,7 @@ jobs:
           exit 1
 
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-${{ steps.cfg.outputs.pages_source }}-${{ inputs.artifact-sha }}
           path: _site

@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout consumer
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download build artifacts
         continue-on-error: true

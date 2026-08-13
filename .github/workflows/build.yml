@@ -35,7 +35,7 @@ jobs:
       has_targets: ${{ steps.pick.outputs.has_targets }}
     steps:
       - name: Checkout consumer
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Read config
         id: cfg
@@ -88,7 +88,7 @@ jobs:
         target: ${{ fromJSON(needs.resolve.outputs.targets_json) }}
     steps:
       - name: Checkout consumer
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Node setup
         if: needs.resolve.outputs.node_enabled == 'true'
@@ -240,7 +240,7 @@ jobs:
           esac
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-${{ matrix.target }}-${{ needs.resolve.outputs.artifact_sha }}
           path: dist/${{ matrix.target }}

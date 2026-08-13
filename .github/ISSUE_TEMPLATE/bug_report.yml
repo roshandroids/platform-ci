@@ -1,0 +1,49 @@
+name: Bug report
+description: Something broken in a reusable workflow or action
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Redact secrets. Paste only the `ci.yaml` bits that matter.
+  - type: input
+    id: platform-ref
+    attributes:
+      label: Platform ref
+      description: Tag or floating major you pinned
+      placeholder: "@v1 or @v1.1.7"
+    validations:
+      required: true
+  - type: input
+    id: workflow
+    attributes:
+      label: Workflow / action
+      placeholder: "quality.yml, build.yml, read-config, …"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repro
+      description: Steps, ci.yaml snippet, public Actions run URL if any
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Consumer context
+      description: App / Melos / package? OS runners involved?
+      placeholder: "Flutter app, Melos monorepo, package-only, …"

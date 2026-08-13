@@ -1,0 +1,34 @@
+name: Feature request
+description: New ci.yaml field, workflow behavior, or deploy sink
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is hard or missing for consumers today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Prefer schema/config over forked YAML. Note if it breaks @v1.
+    validations:
+      required: true
+  - type: dropdown
+    id: minutes
+    attributes:
+      label: Free-tier / minute impact
+      options:
+        - None / docs only
+        - Opt-in only (default off)
+        - May add minutes on feature PRs (needs strong justification)
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Escape hatch (scripts/hooks)? Consumer-side workaround?

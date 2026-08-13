@@ -1,5 +1,8 @@
 # platform-ci
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/roshandroids/platform-ci)](https://github.com/roshandroids/platform-ci/releases)
+
 Reusable GitHub Actions for Flutter / Dart repos.
 
 **Goals:** free Actions tier · solo/small team · build once · `ci.yaml` over copy-paste.
@@ -44,6 +47,10 @@ Start: [`AGENTS.md`](AGENTS.md) → [`docs/ai/`](docs/ai/)
 
 `@v1` floating · `@v1.x.y` immutable · breaking → `v2`
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Security: [SECURITY.md](SECURITY.md).
+
 ## License
 
-MIT
+[MIT](LICENSE) © Roshan Shrestha

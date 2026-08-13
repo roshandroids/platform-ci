@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Platform docs
+    url: https://github.com/roshandroids/platform-ci/blob/main/docs/PLATFORM.md
+    about: Architecture, opt-in, and release model
+  - name: Security report
+    url: https://github.com/roshandroids/platform-ci/blob/main/SECURITY.md
+    about: Report vulnerabilities privately (do not file a public issue)

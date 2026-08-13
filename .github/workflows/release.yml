@@ -37,7 +37,7 @@ jobs:
 
       - name: Download build artifacts
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: build-*-${{ inputs.artifact-sha }}
           path: dist

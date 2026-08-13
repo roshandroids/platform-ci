@@ -26,10 +26,13 @@ After changing schema or `read-config`, confirm examples still parse.
 
 ## Pull requests
 
+`main` / `master` are **protected**. No direct pushes. Fork → branch → PR.
+
 1. One concern per PR when possible.
 2. Update [schema/ci.schema.json](schema/ci.schema.json), examples, and docs when you add `ci.yaml` fields.
 3. Note consumer impact in the PR body (`@v1` compatible? docs/COMPATIBILITY?).
 4. Bump [CHANGELOG.md](CHANGELOG.md) for user-visible changes.
+5. CI must pass (`CI OK`). Resolve review threads. Maintainer approval required to merge.
 
 ## Reporting bugs / ideas
 

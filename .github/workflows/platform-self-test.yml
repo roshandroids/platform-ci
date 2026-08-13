@@ -62,3 +62,17 @@ jobs:
           done
           test -x scripts/validate-local.sh || chmod +x scripts/validate-local.sh
           echo "OK layout"
+
+  # Stable required check for branch protection (matrix job names change).
+  ci-ok:
+    name: CI OK
+    needs: [parse-examples, workflow-files]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Assert self-test jobs succeeded
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ needs.parse-examples.result }}" = "success"
+          test "${{ needs.workflow-files.result }}" = "success"

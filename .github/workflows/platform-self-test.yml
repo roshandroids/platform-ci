@@ -26,7 +26,7 @@ jobs:
           - examples/agentic-flutter-template.ci.yaml
           - templates/ci.yaml
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read config
         id: cfg
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check required workflows
         shell: bash
         run: |

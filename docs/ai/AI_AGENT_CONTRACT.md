@@ -73,7 +73,7 @@ New consumer-facing options require:
 
 ### Rule E — Secrets
 
-Never commit credentials. Document secret **names** only (`FIREBASE_SERVICE_ACCOUNT`, `PUB_CREDENTIALS`).
+Never commit credentials. Document secret **names** only (`FIREBASE_SERVICE_ACCOUNT`, `PUB_CREDENTIALS`, `SHOWCASE_PUSH_TOKEN`).
 
 ### Rule F — Scope
 

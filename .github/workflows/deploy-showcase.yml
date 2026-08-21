@@ -1,0 +1,235 @@
+name: Deploy showcase
+
+# Callable: build this project's Flutter web release and publish it into one
+# subdirectory of a shared public showcase repo (deploy.showcase in ci.yaml).
+# Distinct from deploy-web-demos.yml: that aggregates many demos from THIS
+# repo onto THIS repo's own Pages site; this publishes ONE project's build
+# into a shared external repo alongside other projects' builds.
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        type: string
+        required: false
+        default: ci.yaml
+      version:
+        description: Version string recorded in the showcase deployment metadata (e.g. release tag)
+        type: string
+        required: false
+        default: ""
+    secrets:
+      SHOWCASE_PUSH_TOKEN:
+        description: >
+          Fine-grained PAT with Contents: Read and write on
+          rsprojects-showcase only. Required whenever deploy.showcase.enabled
+          is true.
+        required: true
+
+concurrency:
+  group: showcase-generated-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality
+    uses: roshandroids/platform-ci/.github/workflows/quality.yml@v1
+    with:
+      config-path: ${{ inputs.config-path }}
+
+  showcase:
+    name: Publish showcase
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout consumer
+        uses: actions/checkout@v4
+
+      - name: Read config
+        id: cfg
+        uses: roshandroids/platform-ci/.github/actions/read-config@v1
+        with:
+          config-path: ${{ inputs.config-path }}
+
+      - name: Guard enabled
+        if: steps.cfg.outputs.showcase_enabled != 'true'
+        shell: bash
+        run: |
+          echo "::error::deploy.showcase.enabled is false in ci.yaml"
+          exit 1
+
+      - name: Verify auth secret present
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.SHOWCASE_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$TOKEN" ]]; then
+            echo "::error::secrets.SHOWCASE_PUSH_TOKEN is required for deploy.showcase but was not provided. Add a fine-grained PAT (Contents: Read and write) scoped to rsprojects-showcase as a secret, and pass it via 'secrets: inherit'."
+            exit 1
+          fi
+
+      - name: Validate showcase target
+        id: validate
+        uses: roshandroids/platform-ci/.github/actions/showcase-validate@v1
+        with:
+          id: ${{ steps.cfg.outputs.showcase_id }}
+          repository: ${{ steps.cfg.outputs.showcase_repository }}
+
+      - name: Flutter setup
+        uses: roshandroids/platform-ci/.github/actions/flutter-setup@v1
+        with:
+          flutter-version: ${{ steps.cfg.outputs.flutter }}
+          working-directory: ${{ steps.cfg.outputs.primary_path }}
+          pub-get: ${{ steps.cfg.outputs.kind == 'melos' && 'false' || 'true' }}
+
+      - name: Melos bootstrap
+        if: steps.cfg.outputs.kind == 'melos'
+        uses: roshandroids/platform-ci/.github/actions/melos-bootstrap@v1
+
+      - name: Workspace pub get
+        if: steps.cfg.outputs.kind != 'melos'
+        shell: bash
+        working-directory: ${{ steps.cfg.outputs.primary_path }}
+        run: |
+          set -euo pipefail
+          if [[ -f pubspec.yaml ]]; then
+            dart pub get
+          fi
+
+      - name: Check base-href placeholder
+        shell: bash
+        working-directory: ${{ steps.cfg.outputs.primary_path }}
+        run: |
+          set -euo pipefail
+          if [[ ! -f web/index.html ]]; then
+            echo "::error::web/index.html not found under '${{ steps.cfg.outputs.primary_path }}' — this project is not Flutter-web enabled (run 'flutter create --platforms=web .')."
+            exit 1
+          fi
+          if ! grep -q '\$FLUTTER_BASE_HREF' web/index.html; then
+            echo "::error::web/index.html has no \$FLUTTER_BASE_HREF placeholder in its <base href> tag, so --base-href cannot rewrite asset paths for the showcase subpath (${{ steps.validate.outputs.base-href }}). Restore <base href=\"\$FLUTTER_BASE_HREF\"> in web/index.html and retry."
+            exit 1
+          fi
+
+      - name: Resolve version
+        id: meta
+        shell: bash
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          version="${VERSION_INPUT:-}"
+          if [[ -z "$version" ]]; then
+            version="${GITHUB_SHA:0:7}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "deployed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Build Flutter web (release)
+        shell: bash
+        working-directory: ${{ steps.cfg.outputs.primary_path }}
+        env:
+          BASE_HREF: ${{ steps.validate.outputs.base-href }}
+        run: |
+          set -euo pipefail
+          flutter build web --release --base-href "$BASE_HREF"
+
+      - name: Reject private source / secrets in web build
+        shell: bash
+        working-directory: ${{ steps.cfg.outputs.primary_path }}
+        run: |
+          set -euo pipefail
+          root="build/web"
+          if [[ ! -f "$root/index.html" ]]; then
+            echo "::error::build/web/index.html missing"
+            exit 1
+          fi
+          if [[ ! -f "$root/flutter.js" && ! -f "$root/flutter_bootstrap.js" ]]; then
+            echo "::error::build/web missing flutter.js / flutter_bootstrap.js"
+            exit 1
+          fi
+          if [[ ! -d "$root/assets" ]]; then
+            echo "::error::build/web/assets missing"
+            exit 1
+          fi
+          hits="$(find "$root" \( \
+            -name lib -o -name test -o -name tests -o -name .git -o -name .github \
+            -o -name pubspec.yaml -o -name '*.env' -o -name '*.pem' -o -name '*.key' \
+          \) -print)"
+          if [[ -n "$hits" ]]; then
+            echo "::error::Refusing to publish source or secrets:"
+            echo "$hits"
+            exit 1
+          fi
+
+      - name: Write deployment metadata
+        shell: bash
+        working-directory: ${{ steps.cfg.outputs.primary_path }}
+        env:
+          PLAYGROUND_ID: ${{ steps.validate.outputs.id }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          DEPLOYED_AT: ${{ steps.meta.outputs.deployed_at }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg id "$PLAYGROUND_ID" \
+            --arg version "$VERSION" \
+            --arg commit "$SOURCE_COMMIT" \
+            --arg deployedAt "$DEPLOYED_AT" \
+            '{id: $id, version: $version, commit: $commit, deployedAt: $deployedAt}' \
+            > build/web/showcase.json
+
+      - name: Checkout showcase repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.cfg.outputs.showcase_repository }}
+          token: ${{ secrets.SHOWCASE_PUSH_TOKEN }}
+          path: _showcase
+          fetch-depth: 0
+
+      - name: Sync build into showcase path
+        id: sync
+        uses: roshandroids/platform-ci/.github/actions/showcase-sync@v1
+        with:
+          dest-root: _showcase
+          path: ${{ steps.validate.outputs.path }}
+          build-dir: ${{ steps.cfg.outputs.primary_path }}/build/web
+
+      - name: Commit and push
+        working-directory: _showcase
+        shell: bash
+        env:
+          TARGET_PATH: ${{ steps.validate.outputs.path }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_COMMIT: ${{ github.sha }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "platform-ci[bot]"
+          git config user.email "platform-ci-bot@users.noreply.github.com"
+          git add -- "$TARGET_PATH"
+          if git diff --cached --quiet; then
+            echo "No changes under $TARGET_PATH — nothing to publish"
+            exit 0
+          fi
+          git commit -m "chore(showcase): publish ${SOURCE_REPOSITORY}@${VERSION} to ${TARGET_PATH}
+
+          Source-Commit: ${SOURCE_COMMIT}"
+
+          branch="$(git rev-parse --abbrev-ref HEAD)"
+          attempt=1
+          max_attempts=3
+          until git push origin "HEAD:${branch}"; do
+            if (( attempt >= max_attempts )); then
+              echo "::error::Failed to push to showcase repository after ${max_attempts} attempts (concurrent publish from another project?)"
+              exit 1
+            fi
+            echo "Push rejected (attempt ${attempt}/${max_attempts}) — fetching and rebasing before retry"
+            git fetch origin "$branch"
+            git rebase "origin/${branch}"
+            attempt=$((attempt + 1))
+          done

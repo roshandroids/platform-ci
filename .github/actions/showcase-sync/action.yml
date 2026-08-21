@@ -1,0 +1,68 @@
+name: Sync showcase path
+description: >
+  Replace exactly one subdirectory of a checked-out showcase repo with a fresh
+  build, without touching any sibling project directories.
+
+inputs:
+  dest-root:
+    description: Checkout root of the showcase repository
+    required: true
+  path:
+    description: Normalized destination subdirectory (output of showcase-validate)
+    required: true
+  build-dir:
+    description: Directory containing the built static site to publish (showcase.json, if any, travels as an ordinary file inside it)
+    required: true
+
+outputs:
+  target:
+    description: Absolute/relative path that was replaced
+    value: ${{ steps.sync.outputs.target }}
+
+runs:
+  using: composite
+  steps:
+    - name: Sync
+      id: sync
+      shell: bash
+      env:
+        DEST_ROOT: ${{ inputs.dest-root }}
+        SHOWCASE_PATH: ${{ inputs.path }}
+        BUILD_DIR: ${{ inputs.build-dir }}
+      run: |
+        set -euo pipefail
+        dest_root="$DEST_ROOT"
+        path_in="$SHOWCASE_PATH"
+        build_dir="$BUILD_DIR"
+
+        # Defense in depth: re-validate even though showcase-validate already
+        # normalized this path. Never trust a path this step is about to
+        # `find -delete` without checking it again here.
+        p="$path_in"
+        p="${p%/}"
+
+        if [[ -z "$p" || "$p" == "." || "$p" == ".." || "$path_in" == /* ]]; then
+          echo "::error::invalid showcase path: '$path_in'"
+          exit 1
+        fi
+
+        IFS='/' read -ra segs <<< "$p"
+        for seg in "${segs[@]}"; do
+          case "$seg" in
+            ""|"."|".."|.git|.github)
+              echo "::error::invalid showcase path segment: '$seg'"
+              exit 1
+              ;;
+          esac
+        done
+
+        if [[ ! -d "$build_dir" ]] || [[ -z "$(ls -A "$build_dir" 2>/dev/null || true)" ]]; then
+          echo "::error::build directory missing or empty: $build_dir"
+          exit 1
+        fi
+
+        target="${dest_root%/}/${p}"
+        mkdir -p "$target"
+        find "$target" -mindepth 1 -delete
+        cp -R "$build_dir/." "$target/"
+        echo "target=$target" >> "$GITHUB_OUTPUT"

@@ -144,6 +144,24 @@
             "manifest": { "type": "string", "default": "showcase/demos.json" },
             "base_href_prefix": { "type": "string", "default": "/" }
           }
+        },
+        "showcase": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Publish this project's Flutter web build to rsprojects-showcase/generated/<id>/. Consumer fields: enabled + id only.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "description": "Stable kebab-case playground id (document-platform). Destination is generated/<id>/."
+            }
+          },
+          "if": {
+            "properties": { "enabled": { "const": true } },
+            "required": ["enabled"]
+          },
+          "then": { "required": ["id"] }
         }
       }
     },

@@ -28,7 +28,8 @@ Default caller: [`templates/consumer-ci.yml`](../templates/consumer-ci.yml) → 
 | Prove ship on Release PR | non-empty `release_targets` + build on `release/**` PRs |
 | Publish on tag | tag workflow: `build` then `release`/deploy (**rebuild on tag**) |
 | Continuous web preview (rare) | optional `pr_builds: [web]` — not default |
-| Firebase / Pages / demos / pub | `deploy.*` / `publish.*` + matching thin workflow |
+| Firebase / Pages / demos / showcase / pub | `deploy.*` / `publish.*` + matching thin workflow |
+| Publish to shared public showcase repo (release-triggered) | `deploy.showcase` + [`deploy-showcase.yml`](../.github/workflows/deploy-showcase.yml) — see [SHOWCASE.md](SHOWCASE.md) |
 
 ---
 
@@ -38,7 +39,7 @@ Default caller: [`templates/consumer-ci.yml`](../templates/consumer-ci.yml) → 
 - Permanent `dev` branch for solo
 - Require cross-run artifact reuse
 - Call `build.yml` when all target lists empty
-- Enable demos/firebase/pages “just in case”
+- Enable demos/firebase/pages/showcase “just in case”
 
 ---
 

@@ -1,0 +1,9 @@
+schema: 1
+flutter: "3.38.9"
+kind: app
+paths:
+  - .
+
+deploy:
+  showcase:
+    enabled: true

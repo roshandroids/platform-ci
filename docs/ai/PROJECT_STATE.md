@@ -2,9 +2,9 @@
 
 > AI agents: update this when shipping platform changes.
 
-**Last updated:** 2026-08-01  
+**Last updated:** 2026-08-21  
 **Default branch:** `main`  
-**Version:** `v1.1.0` intent / floating `@v1`  
+**Version:** `v1.2.0` intent / floating `@v1`  
 **Remote:** https://github.com/roshandroids/platform-ci
 
 ---
@@ -24,6 +24,7 @@ Central reusable GitHub Actions platform for Flutter/Dart consumers across RSPro
 | build ios/macos/windows/linux + zip/script | Shipped (v1.1) |
 | node-setup + before_build | Shipped (v1.1) |
 | deploy-firebase / pages / web-demos | Shipped |
+| deploy-showcase (cross-repo public showcase publish) | Shipped (v1.2) |
 | release / publish-pub / maintenance | Shipped |
 | COMPATIBILITY + consumer examples | Shipped (v1.1) |
 | AI docs | Shipped |

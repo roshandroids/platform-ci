@@ -40,6 +40,12 @@ Local: `./scripts/validate-local.sh ci.yaml`
 
 See [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) for Document_Platform, AI_Tray, agentic_flutter_template, celpip.
 
+## Playground Showcase
+
+Host applications can publish their public Flutter playground through the shared Playground Showcase pipeline (`deploy.showcase` → `rsprojects-showcase`).
+
+Onboarding a host repo (including for AI coding agents): [`docs/SHOWCASE_HOST_ONBOARDING.md`](docs/SHOWCASE_HOST_ONBOARDING.md). Implementation reference: [`docs/SHOWCASE.md`](docs/SHOWCASE.md).
+
 ## AI agents
 
 Start: [`AGENTS.md`](AGENTS.md) → [`docs/ai/`](docs/ai/)

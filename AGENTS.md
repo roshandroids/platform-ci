@@ -61,3 +61,7 @@ Product policy lives in the **consumer** `ci.yaml`. This repo owns workflows + c
 ## Consumer migration hint
 
 Thin workflow + `ci.yaml` only. Replace `OWNER` with `roshandroids`. Pin `@v1`.
+
+## Onboarding a host app to Playground Showcase
+
+When onboarding a host application for Playground Showcase publishing, follow [`docs/SHOWCASE_HOST_ONBOARDING.md`](docs/SHOWCASE_HOST_ONBOARDING.md). Do not create a separate showcase publishing architecture.

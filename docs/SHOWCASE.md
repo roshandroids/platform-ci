@@ -1,5 +1,7 @@
 # Showcase deployment
 
+> **Onboarding a host repository?** Use [`docs/SHOWCASE_HOST_ONBOARDING.md`](SHOWCASE_HOST_ONBOARDING.md) — a self-contained, step-by-step guide (including an AI-agent procedure and report format) for enabling `deploy.showcase` in a private host application. This file is the implementation reference; that one is the actionable playbook.
+
 Publish **one project's** Flutter web release into `rsprojects-showcase/generated/<id>/`.
 
 **platform-ci is the sole publisher.** `rsprojects-showcase` does not receive private-project artifacts and does not implement a second playground receiver. It hosts `generated/<id>/` and deploys them with the public showcase app on GitHub Pages.

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.0
+
+### Changed
+
+- Locked `deploy.showcase` consumer contract: only `enabled` + `id`. platform-ci is the **sole publisher** into `rsprojects-showcase/generated/<id>/`. Base href `/rsprojects-showcase/generated/<id>/`. Metadata `showcase.json`. Secret `SHOWCASE_PUSH_TOKEN` (breaking rename from `SHOWCASE_DEPLOY_TOKEN`). See [docs/SHOWCASE.md](docs/SHOWCASE.md)
+
+## 1.2.0
+
+### Added
+
+- `deploy.showcase` — publish a project's Flutter web release build into one subdirectory of a shared public showcase repo, for private projects that want a public demo (`.github/workflows/deploy-showcase.yml`, `.github/actions/showcase-validate`, `.github/actions/showcase-sync`, `templates/consumer-deploy-showcase.yml`)
+- Showcase publish runs `quality.yml` before building, computes `base-href` from the destination repo/path, writes `deployment.json` metadata, and isolates writes to the configured path only (validated repository/path, scoped git add, push retry on race). See [docs/SHOWCASE.md](docs/SHOWCASE.md)
+
 ## 1.1.7
 
 ### Fixed

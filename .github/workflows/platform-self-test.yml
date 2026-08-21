@@ -54,19 +54,322 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in quality build release deploy-firebase deploy-pages deploy-web-demos publish-pub maintenance; do
+          for f in quality build release deploy-firebase deploy-pages deploy-web-demos deploy-showcase publish-pub maintenance; do
             test -f ".github/workflows/${f}.yml"
           done
-          for a in read-config flutter-setup melos-bootstrap github-release checkout-platform node-setup; do
+          for a in read-config flutter-setup melos-bootstrap github-release checkout-platform node-setup showcase-validate showcase-sync; do
             test -f ".github/actions/${a}/action.yml"
           done
           test -x scripts/validate-local.sh || chmod +x scripts/validate-local.sh
           echo "OK layout"
 
+  showcase-config-parse:
+    name: Showcase config parses (enabled + disabled)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read enabled config
+        id: enabled
+        uses: ./.github/actions/read-config
+        with:
+          config-path: examples/document-platform.ci.yaml
+
+      - name: Assert enabled outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.enabled.outputs.showcase_enabled }}" = "true"
+          test "${{ steps.enabled.outputs.showcase_id }}" = "document-platform"
+          test "${{ steps.enabled.outputs.showcase_repository }}" = "roshandroids/rsprojects-showcase"
+          test "${{ steps.enabled.outputs.showcase_path }}" = "generated/document-platform"
+          echo "OK showcase enabled parse"
+
+      - name: Read default (disabled) config
+        id: disabled
+        uses: ./.github/actions/read-config
+        with:
+          config-path: templates/ci.yaml
+
+      - name: Assert disabled outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.disabled.outputs.showcase_enabled }}" = "false"
+          test -z "${{ steps.disabled.outputs.showcase_id }}"
+          test -z "${{ steps.disabled.outputs.showcase_repository }}"
+          echo "OK showcase disabled-by-default parse"
+
+      - name: Parse missing id
+        id: parse_missing
+        continue-on-error: true
+        uses: ./.github/actions/read-config
+        with:
+          config-path: tests/ci/showcase-missing-id.yaml
+
+      - name: Parse legacy repository
+        id: parse_legacy_cfg
+        continue-on-error: true
+        uses: ./.github/actions/read-config
+        with:
+          config-path: tests/ci/showcase-legacy.yaml
+
+      - name: Assert invalid consumer configs fail
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.parse_missing.outcome }}" = "failure"
+          test "${{ steps.parse_legacy_cfg.outcome }}" = "failure"
+          echo "OK invalid showcase configs rejected"
+
+  showcase-validate-tests:
+    name: showcase-validate — id / generated path / base-href
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Valid id
+        id: valid
+        uses: ./.github/actions/showcase-validate
+        with:
+          id: document-platform
+
+      - name: Assert auto base-href
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.valid.outputs.id }}" = "document-platform"
+          test "${{ steps.valid.outputs.repo-name }}" = "rsprojects-showcase"
+          test "${{ steps.valid.outputs.path }}" = "generated/document-platform"
+          test "${{ steps.valid.outputs.base-href }}" = "/rsprojects-showcase/generated/document-platform/"
+          echo "OK auto base-href"
+
+      - name: Valid short ids
+        id: valid_short
+        uses: ./.github/actions/showcase-validate
+        with:
+          id: a1
+
+      - name: Assert short id path
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.valid_short.outputs.path }}" = "generated/a1"
+          echo "OK short id"
+
+      - name: Invalid PascalCase
+        id: bad_pascal
+        continue-on-error: true
+        uses: ./.github/actions/showcase-validate
+        with:
+          id: DocumentPlatform
+
+      - name: Invalid underscore
+        id: bad_underscore
+        continue-on-error: true
+        uses: ./.github/actions/showcase-validate
+        with:
+          id: document_platform
+
+      - name: Invalid slash
+        id: bad_slash
+        continue-on-error: true
+        uses: ./.github/actions/showcase-validate
+        with:
+          id: document/platform
+
+      - name: Invalid traversal
+        id: bad_traversal
+        continue-on-error: true
+        uses: ./.github/actions/showcase-validate
+        with:
+          id: ../document-platform
+
+      - name: Invalid .git
+        id: bad_dotgit
+        continue-on-error: true
+        uses: ./.github/actions/showcase-validate
+        with:
+          id: .git
+
+      - name: Invalid .github
+        id: bad_github
+        continue-on-error: true
+        uses: ./.github/actions/showcase-validate
+        with:
+          id: .github
+
+      - name: Empty id
+        id: bad_empty
+        continue-on-error: true
+        uses: ./.github/actions/showcase-validate
+        with:
+          id: ""
+
+      - name: Leading hyphen
+        id: bad_lead
+        continue-on-error: true
+        uses: ./.github/actions/showcase-validate
+        with:
+          id: -leading
+
+      - name: Trailing hyphen
+        id: bad_trail
+        continue-on-error: true
+        uses: ./.github/actions/showcase-validate
+        with:
+          id: trailing-
+
+      - name: Assert invalid ids all failed
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.bad_pascal.outcome }}" = "failure"
+          test "${{ steps.bad_underscore.outcome }}" = "failure"
+          test "${{ steps.bad_slash.outcome }}" = "failure"
+          test "${{ steps.bad_traversal.outcome }}" = "failure"
+          test "${{ steps.bad_dotgit.outcome }}" = "failure"
+          test "${{ steps.bad_github.outcome }}" = "failure"
+          test "${{ steps.bad_empty.outcome }}" = "failure"
+          test "${{ steps.bad_lead.outcome }}" = "failure"
+          test "${{ steps.bad_trail.outcome }}" = "failure"
+          echo "OK all invalid showcase ids rejected"
+
+  showcase-sync-isolation:
+    name: showcase-sync — isolates generated/<id>/
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Seed fixture showcase repo + build output
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/fixture/rsprojects-showcase/generated/document-platform
+          mkdir -p /tmp/fixture/rsprojects-showcase/generated/hcm-requisitions
+          echo "stale" > /tmp/fixture/rsprojects-showcase/generated/document-platform/STALE_MARKER
+          echo "sibling" > /tmp/fixture/rsprojects-showcase/generated/hcm-requisitions/SIBLING_MARKER
+          mkdir -p /tmp/fixture/build/assets
+          echo "<html>new build</html>" > /tmp/fixture/build/index.html
+          echo "js" > /tmp/fixture/build/flutter.js
+          echo '{"id":"document-platform","version":"1.2.0","commit":"abc123","deployedAt":"2026-08-21T00:00:00Z"}' > /tmp/fixture/build/showcase.json
+
+      - name: Sync into generated/document-platform only
+        uses: ./.github/actions/showcase-sync
+        with:
+          dest-root: /tmp/fixture/rsprojects-showcase
+          path: generated/document-platform
+          build-dir: /tmp/fixture/build
+
+      - name: Assert own path replaced, sibling untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f /tmp/fixture/rsprojects-showcase/generated/document-platform/index.html
+          test -f /tmp/fixture/rsprojects-showcase/generated/document-platform/showcase.json
+          test ! -f /tmp/fixture/rsprojects-showcase/generated/document-platform/STALE_MARKER
+          test -f /tmp/fixture/rsprojects-showcase/generated/hcm-requisitions/SIBLING_MARKER
+          grep -q '"id": "document-platform"' /tmp/fixture/rsprojects-showcase/generated/document-platform/showcase.json || \
+            grep -q '"id":"document-platform"' /tmp/fixture/rsprojects-showcase/generated/document-platform/showcase.json
+          echo "OK sibling project untouched by publish"
+
+      - name: Reject path traversal
+        id: bad_sync
+        continue-on-error: true
+        uses: ./.github/actions/showcase-sync
+        with:
+          dest-root: /tmp/fixture/rsprojects-showcase
+          path: ../evil
+          build-dir: /tmp/fixture/build
+
+      - name: Assert traversal sync rejected and nothing escaped
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.bad_sync.outcome }}" = "failure"
+          test ! -e /tmp/fixture/evil
+          echo "OK traversal sync rejected"
+
+  showcase-workflow-structure:
+    name: Showcase workflow/template YAML structure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Assert reusable workflow shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruby -ryaml -e '
+            cfg = YAML.load_file(".github/workflows/deploy-showcase.yml")
+            on = cfg["on"] || cfg[true]
+            call = on["workflow_call"]
+            abort("missing config-path input") unless call["inputs"]["config-path"]
+            abort("missing version input") unless call["inputs"]["version"]
+            secret = call["secrets"]["SHOWCASE_PUSH_TOKEN"]
+            abort("SHOWCASE_PUSH_TOKEN must be required") unless secret["required"] == true
+            jobs = cfg["jobs"]
+            abort("missing quality job") unless jobs["quality"]
+            abort("missing showcase job") unless jobs["showcase"]
+            abort("showcase job must need quality") unless Array(jobs["showcase"]["needs"]).include?("quality")
+            puts "OK deploy-showcase.yml structure"
+          '
+
+      - name: Assert consumer template trigger fires on tag push
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruby -ryaml -e '
+            cfg = YAML.load_file("templates/consumer-deploy-showcase.yml")
+            on = cfg["on"] || cfg[true]
+            abort("missing push trigger") unless on["push"]
+            abort("missing tag pattern") unless Array(on["push"]["tags"]).any? { |t| t.to_s.include?("v") }
+            abort("missing workflow_dispatch") unless on.key?("workflow_dispatch")
+            job = cfg["jobs"]["showcase"]
+            abort("must call platform deploy-showcase.yml") unless job["uses"].to_s.include?("deploy-showcase.yml")
+            abort("must inherit secrets") unless job["secrets"] == "inherit"
+            puts "OK consumer-deploy-showcase.yml structure"
+          '
+
+      - name: Forbid old token name and extra consumer fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -n 'SHOWCASE_DEPLOY_TOKEN' \
+            .github/workflows/deploy-showcase.yml \
+            templates/consumer-deploy-showcase.yml \
+            .github/actions/read-config/action.yml \
+            .github/actions/showcase-validate/action.yml \
+            examples/*.yaml \
+            schema/ci.schema.json; then
+            echo "SHOWCASE_DEPLOY_TOKEN must not appear in active config"
+            exit 1
+          fi
+          ruby -ryaml -e '
+            s = YAML.load_file("examples/document-platform.ci.yaml").dig("deploy","showcase")
+            abort("example must not set repository") if s.key?("repository")
+            abort("example must not set path") if s.key?("path")
+            abort("example must not set base_href") if s.key?("base_href")
+            abort("example id mismatch") unless s["id"] == "document-platform"
+            puts "OK locked consumer example"
+          '
+
   # Stable required check for branch protection (matrix job names change).
   ci-ok:
     name: CI OK
-    needs: [parse-examples, workflow-files]
+    needs:
+      [
+        parse-examples,
+        workflow-files,
+        showcase-config-parse,
+        showcase-validate-tests,
+        showcase-sync-isolation,
+        showcase-workflow-structure,
+      ]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -76,3 +379,7 @@ jobs:
           set -euo pipefail
           test "${{ needs.parse-examples.result }}" = "success"
           test "${{ needs.workflow-files.result }}" = "success"
+          test "${{ needs.showcase-config-parse.result }}" = "success"
+          test "${{ needs.showcase-validate-tests.result }}" = "success"
+          test "${{ needs.showcase-sync-isolation.result }}" = "success"
+          test "${{ needs.showcase-workflow-structure.result }}" = "success"

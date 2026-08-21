@@ -16,6 +16,7 @@
 | `quality` | every PR → main |
 | `build` | `release/**` PRs and/or tags (see RELEASE.md) |
 | `deploy-firebase` / `deploy-pages` / `deploy-web-demos` | same run as `build` |
+| `deploy-showcase` | self-contained (own quality + build); tag `v*` or manual dispatch — see [SHOWCASE.md](SHOWCASE.md) |
 | `release` | on `v*` after `build` in same run |
 | `publish-pub` | tag or manual |
 | `maintenance` | weekly / manual |
@@ -45,7 +46,7 @@ Do **not** resolve composites via `github.workflow_ref` + sparse checkout into `
 | ios | macos | prefer `script` for real IPA |
 | macos / windows / linux | matching OS | supported + optional zip |
 
-See [COMPATIBILITY.md](COMPATIBILITY.md) · [OPT_IN.md](OPT_IN.md) · [RELEASE.md](RELEASE.md).
+See [COMPATIBILITY.md](COMPATIBILITY.md) · [OPT_IN.md](OPT_IN.md) · [RELEASE.md](RELEASE.md) · [SHOWCASE.md](SHOWCASE.md).
 
 ## Consumer wiring
 

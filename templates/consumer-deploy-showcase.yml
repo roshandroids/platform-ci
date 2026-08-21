@@ -1,0 +1,36 @@
+# Consumer: publish this project's Flutter web build into a shared public
+# showcase repo (deploy.showcase in ci.yaml). Copy to
+# .github/workflows/deploy-showcase.yml — no OWNER replacement needed beyond
+# the @v1 pin below.
+#
+# Trigger note: GitHub Releases created by a workflow using the default
+# GITHUB_TOKEN (as templates/consumer-release.yml does via the
+# github-release composite) do NOT fire `on: release`. Tag push is the
+# reliable trigger for the canonical tag -> build -> release flow, so that
+# is what this template uses. If you publish releases by hand through the
+# GitHub UI (not via CI), you can add `release: { types: [published] }`
+# to the `on:` block below as well — see docs/SHOWCASE.md.
+# Required secret on the private repo: SHOWCASE_PUSH_TOKEN
+# (fine-grained PAT, Contents: Read and write on roshandroids/rsprojects-showcase only).
+name: Publish showcase
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: showcase-generated-publish
+  cancel-in-progress: false
+
+jobs:
+  showcase:
+    uses: roshandroids/platform-ci/.github/workflows/deploy-showcase.yml@v1
+    with:
+      config-path: ci.yaml
+      version: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+    secrets: inherit

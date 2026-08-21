@@ -74,6 +74,14 @@ outputs:
     value: ${{ steps.parse.outputs.demos_manifest }}
   demos_base_href_prefix:
     value: ${{ steps.parse.outputs.demos_base_href_prefix }}
+  showcase_enabled:
+    value: ${{ steps.parse.outputs.showcase_enabled }}
+  showcase_id:
+    value: ${{ steps.parse.outputs.showcase_id }}
+  showcase_repository:
+    value: ${{ steps.parse.outputs.showcase_repository }}
+  showcase_path:
+    value: ${{ steps.parse.outputs.showcase_path }}
   pub_enabled:
     value: ${{ steps.parse.outputs.pub_enabled }}
   pub_path:
@@ -116,6 +124,7 @@ runs:
         firebase = deploy["firebase"].is_a?(Hash) ? deploy["firebase"] : {}
         pages = deploy["pages"].is_a?(Hash) ? deploy["pages"] : {}
         demos = deploy["demos"].is_a?(Hash) ? deploy["demos"] : {}
+        showcase = deploy["showcase"].is_a?(Hash) ? deploy["showcase"] : {}
         publish = cfg["publish"].is_a?(Hash) ? cfg["publish"] : {}
         pub = publish["pub"].is_a?(Hash) ? publish["pub"] : {}
 
@@ -173,6 +182,25 @@ runs:
           f.puts "demos_enabled=#{demos.key?("enabled") ? !!demos["enabled"] : false}"
           f.puts "demos_manifest=#{demos["manifest"] || "showcase/demos.json"}"
           f.puts "demos_base_href_prefix=#{demos["base_href_prefix"] || "/"}"
+          f.puts "showcase_enabled=#{showcase.key?("enabled") ? !!showcase["enabled"] : false}"
+          showcase_enabled = showcase.key?("enabled") ? !!showcase["enabled"] : false
+          %w[repository path base_href].each do |legacy|
+            if showcase.key?(legacy)
+              abort("deploy.showcase.#{legacy} is not a consumer field. Use only enabled and id. Destination is rsprojects-showcase/generated/<id>/.")
+            end
+          end
+          showcase_id = showcase["id"].to_s
+          if showcase_enabled
+            abort("deploy.showcase.id is required when enabled is true") if showcase_id.empty?
+            unless showcase_id.match?(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+              abort("deploy.showcase.id must be kebab-case [a-z0-9-] (got #{showcase_id.inspect})")
+            end
+          end
+          showcase_repo = showcase_enabled ? (ENV["SHOWCASE_REPOSITORY"].to_s.empty? ? "roshandroids/rsprojects-showcase" : ENV["SHOWCASE_REPOSITORY"].to_s) : ""
+          showcase_path = showcase_enabled ? "generated/#{showcase_id}" : ""
+          f.puts "showcase_id=#{showcase_id}"
+          f.puts "showcase_repository=#{showcase_repo}"
+          f.puts "showcase_path=#{showcase_path}"
           f.puts "pub_enabled=#{pub.key?("enabled") ? !!pub["enabled"] : false}"
           f.puts "pub_path=#{pub["path"] || "."}"
           f.puts "pub_dry_run_on_pr=#{pub.key?("dry_run_on_pr") ? !!pub["dry_run_on_pr"] : true}"

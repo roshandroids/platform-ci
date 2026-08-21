@@ -37,6 +37,9 @@ deploy:
       - tag
   pages:
     enabled: false
+  showcase:
+    enabled: true
+    id: document-platform
 
 hooks:
   local: true

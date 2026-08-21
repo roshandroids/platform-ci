@@ -4,7 +4,7 @@
 
 | Repo | Fit | How |
 |------|-----|-----|
-| **Document_Platform** | Strong | `kind: melos` · `quality.scripts` for changelog/boundaries · `deploy.demos` + `deploy-web-demos.yml` · Firebase via `deploy-firebase` on tag (artifact) · keep local `scripts/release.sh` for SemVer if desired |
+| **Document_Platform** | Strong | `kind: melos` · `quality.scripts` for changelog/boundaries · `deploy.demos` + `deploy-web-demos.yml` · `deploy.showcase` + `deploy-showcase.yml` (public showcase repo, tag-triggered) · Firebase via `deploy-firebase` on tag (artifact) · keep local `scripts/release.sh` for SemVer if desired |
 | **AI_Tray** | Strong after desktop | `paths: [ai_tray]` · `node.enabled` · `hooks.before_build` bridge · `release_targets: [macos, windows]` · `build.*.package: zip` or `script:` for custom names |
 | **agentic_flutter_template** | Strong | Replace modular workflow copies with `quality` + optional `build` · goldens via `quality.golden` · boundaries via `quality.scripts` · Pages via `deploy.pages` · stop rebuilding web in deploy |
 | **celpip-workspace** | Strong | Already matches web + Firebase pattern |
@@ -17,6 +17,7 @@
 | Node sidecar | `node` + `node-setup` + `hooks.before_build` |
 | Custom packaging | `build.<target>.script` must fill `dist/<target>/` |
 | Multi-demo Pages | `deploy-web-demos.yml` + `deploy.demos` |
+| Cross-repo public showcase for private projects | `deploy-showcase.yml` + `deploy.showcase` ([SHOWCASE.md](SHOWCASE.md)) |
 | Goldens / integration | `quality.golden` / `quality.integration` |
 | Repo-specific gates | `quality.scripts[]` |
 | Zip desktop artifacts | `build.<target>.package: zip` |

@@ -1,0 +1,11 @@
+schema: 1
+flutter: "3.38.9"
+kind: app
+paths:
+  - .
+
+deploy:
+  showcase:
+    enabled: true
+    id: document-platform
+    repository: roshandroids/project_showcase

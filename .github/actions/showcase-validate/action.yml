@@ -1,0 +1,71 @@
+name: Validate showcase target
+description: Validate deploy.showcase.id and compute generated/<id>/ plus Pages base-href
+
+inputs:
+  id:
+    description: Kebab-case playground id (document-platform)
+    required: true
+  repository:
+    description: Destination owner/repo (platform default; not a consumer field)
+    required: false
+    default: roshandroids/rsprojects-showcase
+
+outputs:
+  id:
+    description: Normalized playground id
+    value: ${{ steps.validate.outputs.id }}
+  repo-name:
+    description: Destination repository name
+    value: ${{ steps.validate.outputs.repo-name }}
+  repository:
+    description: Destination owner/repo
+    value: ${{ steps.validate.outputs.repository }}
+  path:
+    description: Destination path generated/<id>
+    value: ${{ steps.validate.outputs.path }}
+  base-href:
+    description: /<repo>/generated/<id>/
+    value: ${{ steps.validate.outputs.base-href }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate
+      id: validate
+      shell: bash
+      env:
+        SHOWCASE_ID: ${{ inputs.id }}
+        REPOSITORY: ${{ inputs.repository }}
+      run: |
+        set -euo pipefail
+        id="${SHOWCASE_ID:-}"
+        repo="${REPOSITORY:-roshandroids/rsprojects-showcase}"
+
+        if [[ -z "$id" ]]; then
+          echo "::error::deploy.showcase.id is required when enabled is true"
+          exit 1
+        fi
+        if [[ ! "$id" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+          echo "::error::deploy.showcase.id must be kebab-case [a-z0-9-] (got '$id')"
+          exit 1
+        fi
+        case "$id" in
+          .git|.github)
+            echo "::error::deploy.showcase.id must not be '$id'"
+            exit 1
+            ;;
+        esac
+
+        if [[ ! "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+          echo "::error::showcase repository must be 'owner/repo', got: '$repo'"
+          exit 1
+        fi
+        repo_name="${repo#*/}"
+        p="generated/${id}"
+        href="/${repo_name}/generated/${id}/"
+
+        echo "id=$id" >> "$GITHUB_OUTPUT"
+        echo "repository=$repo" >> "$GITHUB_OUTPUT"
+        echo "repo-name=$repo_name" >> "$GITHUB_OUTPUT"
+        echo "path=$p" >> "$GITHUB_OUTPUT"
+        echo "base-href=$href" >> "$GITHUB_OUTPUT"

@@ -32,6 +32,7 @@ Local: `./scripts/validate-local.sh ci.yaml`
 | `deploy-firebase.yml` | Hosting from web artifact |
 | `deploy-pages.yml` | Pages from single artifact |
 | `deploy-web-demos.yml` | Multi-demo site from `demos.json` |
+| `deploy-showcase.yml` | Sole publisher of private Flutter web playgrounds into `rsprojects-showcase/generated/<id>/` — see [`docs/SHOWCASE.md`](docs/SHOWCASE.md) |
 | `publish-pub.yml` | pub.dev |
 | `maintenance.yml` | weekly hygiene |
 

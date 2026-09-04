@@ -95,6 +95,7 @@ jobs:
       - name: Analyze
         if: inputs.run-analyze
         shell: bash
+        working-directory: ${{ steps.cfg.outputs.primary_path }}
         run: dart analyze --fatal-infos
 
       - name: Parse demos manifest

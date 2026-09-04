@@ -46,7 +46,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout consumer
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Read config
         id: cfg
@@ -184,7 +184,7 @@ jobs:
             > build/web/showcase.json
 
       - name: Checkout showcase repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ steps.cfg.outputs.showcase_repository }}
           token: ${{ secrets.SHOWCASE_PUSH_TOKEN }}

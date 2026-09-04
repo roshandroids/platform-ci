@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1
+
+### Fixed
+
+- `deploy-web-demos.yml`'s `Analyze` step now runs with `working-directory: ${{ steps.cfg.outputs.primary_path }}`, matching the Flutter setup step above it. Previously it ran `dart analyze --fatal-infos` unscoped from `$GITHUB_WORKSPACE`, which could reach files outside the intended project in consumers whose repo root isn't the Dart/Flutter project root (#10)
+
 ## 1.3.0
 
 ### Changed

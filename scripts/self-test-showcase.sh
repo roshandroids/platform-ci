@@ -16,7 +16,7 @@ assert_id() {
 }
 
 assert_id document-platform ok
-assert_id hcm-requisitions ok
+assert_id sample-requisitions ok
 assert_id a ok
 assert_id a1 ok
 assert_id DocumentPlatform bad
@@ -44,9 +44,9 @@ path="generated/document-platform"
 
 rm -rf /tmp/platform-ci-showcase-e2e
 mkdir -p /tmp/platform-ci-showcase-e2e/rsprojects-showcase/generated/document-platform
-mkdir -p /tmp/platform-ci-showcase-e2e/rsprojects-showcase/generated/hcm-requisitions
+mkdir -p /tmp/platform-ci-showcase-e2e/rsprojects-showcase/generated/sample-requisitions
 echo stale > /tmp/platform-ci-showcase-e2e/rsprojects-showcase/generated/document-platform/STALE
-echo sibling > /tmp/platform-ci-showcase-e2e/rsprojects-showcase/generated/hcm-requisitions/SIBLING
+echo sibling > /tmp/platform-ci-showcase-e2e/rsprojects-showcase/generated/sample-requisitions/SIBLING
 mkdir -p /tmp/platform-ci-showcase-e2e/build/assets
 cat > /tmp/platform-ci-showcase-e2e/build/index.html <<'HTML'
 <!DOCTYPE html><html><head><base href="/rsprojects-showcase/generated/document-platform/"></head><body></body></html>
@@ -64,7 +64,7 @@ test -f "$target/index.html"
 grep -q '/rsprojects-showcase/generated/document-platform/' "$target/index.html"
 test -f "$target/showcase.json"
 test ! -f "$target/STALE"
-test -f /tmp/platform-ci-showcase-e2e/rsprojects-showcase/generated/hcm-requisitions/SIBLING
+test -f /tmp/platform-ci-showcase-e2e/rsprojects-showcase/generated/sample-requisitions/SIBLING
 
 if grep -n 'SHOWCASE_DEPLOY_TOKEN' \
   .github/workflows/deploy-showcase.yml \

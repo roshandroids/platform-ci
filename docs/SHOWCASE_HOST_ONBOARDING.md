@@ -90,7 +90,7 @@ The id is validated by both [`schema/ci.schema.json`](../schema/ci.schema.json) 
 
 ```
 document-platform
-hcm-requisitions
+sample-requisitions
 ai-tray
 ```
 

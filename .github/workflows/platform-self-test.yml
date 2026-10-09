@@ -249,9 +249,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/fixture/rsprojects-showcase/generated/document-platform
-          mkdir -p /tmp/fixture/rsprojects-showcase/generated/hcm-requisitions
+          mkdir -p /tmp/fixture/rsprojects-showcase/generated/sample-requisitions
           echo "stale" > /tmp/fixture/rsprojects-showcase/generated/document-platform/STALE_MARKER
-          echo "sibling" > /tmp/fixture/rsprojects-showcase/generated/hcm-requisitions/SIBLING_MARKER
+          echo "sibling" > /tmp/fixture/rsprojects-showcase/generated/sample-requisitions/SIBLING_MARKER
           mkdir -p /tmp/fixture/build/assets
           echo "<html>new build</html>" > /tmp/fixture/build/index.html
           echo "js" > /tmp/fixture/build/flutter.js
@@ -271,7 +271,7 @@ jobs:
           test -f /tmp/fixture/rsprojects-showcase/generated/document-platform/index.html
           test -f /tmp/fixture/rsprojects-showcase/generated/document-platform/showcase.json
           test ! -f /tmp/fixture/rsprojects-showcase/generated/document-platform/STALE_MARKER
-          test -f /tmp/fixture/rsprojects-showcase/generated/hcm-requisitions/SIBLING_MARKER
+          test -f /tmp/fixture/rsprojects-showcase/generated/sample-requisitions/SIBLING_MARKER
           grep -q '"id": "document-platform"' /tmp/fixture/rsprojects-showcase/generated/document-platform/showcase.json || \
             grep -q '"id":"document-platform"' /tmp/fixture/rsprojects-showcase/generated/document-platform/showcase.json
           echo "OK sibling project untouched by publish"
